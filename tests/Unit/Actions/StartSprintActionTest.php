@@ -12,6 +12,28 @@ use App\Models\Sprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Sprint Başlatma Testi (StartSprintAction)
+ *
+ * Bu test sınıfı, "Planning" aşamasındaki bir Sprint'in başlatılması
+ * (Active durumuna geçirilmesi) sürecindeki iş kurallarını doğrular.
+ * Özellikle aynı projede birden fazla aktif Sprint olmaması kuralını test eder.
+ *
+ * Kullanılan Action: StartSprintAction
+ * Bağımlılıklar: Project modeli, Sprint modeli, SprintStatus enum
+ * İlgili Exception: ActiveSprintAlreadyExistsException
+ *
+ * Test Edilen Senaryolar:
+ *  - test_can_start_planning_sprint:
+ *    "Planning" durumundaki bir Sprint oluşturulur ve başlatılır.
+ *    Sprint durumunun "Active" olması ve start_date alanının bugünün
+ *    tarihi ile doldurulması beklenir.
+ *
+ *  - test_cannot_start_when_active_sprint_exists:
+ *    Projede zaten aktif bir Sprint varken ikinci bir Sprint başlatılmaya
+ *    çalışılır. ActiveSprintAlreadyExistsException fırlatılması beklenir.
+ *    (İş Kuralı: Bir projede aynı anda yalnızca bir aktif Sprint olabilir.)
+ */
 class StartSprintActionTest extends TestCase
 {
     use RefreshDatabase;

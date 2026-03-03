@@ -13,6 +13,36 @@ use App\Models\UserStory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Sprint İş Akışı (Workflow) Testi
+ *
+ * Bu test sınıfı, Sprint yaşam döngüsünün tamamını test eder: oluşturma,
+ * başlatma, ikinci Sprint kısıtlaması ve Sprint kapatma sırasındaki
+ * tamamlanmamış story'lerin backlog'a döndürülmesi.
+ * Her testten önce setUp() içinde bir Owner kullanıcısı ve proje oluşturulur.
+ *
+ * Test Edilen Senaryolar:
+ *  - test_can_create_sprint:
+ *    POST /api/projects/{slug}/sprints isteğiyle yeni Sprint oluşturulur.
+ *    HTTP 201 dönmesi, Sprint adının doğru olması ve durumunun
+ *    "planning" olması beklenir.
+ *
+ *  - test_can_start_sprint:
+ *    "Planning" durumundaki Sprint başlatılır (POST .../sprints/{id}/start).
+ *    HTTP 200 dönmesi ve durumunun "active" olması beklenir.
+ *
+ *  - test_cannot_start_second_sprint:
+ *    Projede zaten aktif bir Sprint varken ikinci bir Sprint başlatılmaya
+ *    çalışılır. HTTP 422 (Unprocessable Entity) dönmesi beklenir.
+ *    (İş Kuralı: Aynı anda yalnızca bir aktif Sprint olabilir.)
+ *
+ *  - test_close_sprint_returns_unfinished_stories_to_backlog:
+ *    Aktif bir Sprint'e "InProgress" durumunda bir User Story eklenir,
+ *    ardından Sprint kapatılır (POST .../sprints/{id}/close).
+ *    HTTP 200 dönmesi, Sprint durumunun "closed" olması ve tamamlanmamış
+ *    story'nin sprint_id alanının null'a dönmesi (backlog'a geri atılması)
+ *    beklenir. (BR-08: Tamamlanmamış story'ler backlog'a döner.)
+ */
 class SprintWorkflowTest extends TestCase
 {
     use RefreshDatabase;

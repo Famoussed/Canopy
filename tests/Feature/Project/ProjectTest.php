@@ -10,6 +10,36 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Proje CRUD ve Yetkilendirme Testi
+ *
+ * Bu test sınıfı, proje oluşturma, listeleme, güncelleme ve silme (CRUD)
+ * işlemlerini ve bu işlemler üzerindeki yetkilendirme kurallarını test eder.
+ * Tüm istekler /api/projects endpoint'lerine JSON olarak yapılır.
+ *
+ * Test Edilen Senaryolar:
+ *  - test_user_can_create_project:
+ *    Giriş yapmış kullanıcı yeni bir proje oluşturur. HTTP 201 dönmesi,
+ *    proje adının doğru kaydedilmesi ve BR-13 iş kuralı gereği projeyi
+ *    oluşturan kullanıcının otomatik olarak "Owner" rolüyle üye yapılması beklenir.
+ *
+ *  - test_user_can_list_own_projects:
+ *    Kullanıcının üyesi olduğu projeleri listelemesi test edilir.
+ *    GET /api/projects isteğine HTTP 200 dönmesi ve yalnızca kullanıcıya
+ *    ait 1 projenin listelenmesi beklenir.
+ *
+ *  - test_owner_can_update_project:
+ *    Proje sahibi (Owner) projenin adını günceller. HTTP 200 dönmesi
+ *    ve güncellenmiş adın yanıtta yer alması beklenir.
+ *
+ *  - test_owner_can_delete_project:
+ *    Proje sahibi projeyi siler. HTTP 204 dönmesi ve projenin veritabanında
+ *    soft-delete ile işaretlenmiş olması beklenir.
+ *
+ *  - test_non_owner_cannot_delete_project:
+ *    "Member" rolündeki bir kullanıcı projeyi silmeye çalışır.
+ *    HTTP 403 (Forbidden) dönmesi beklenir. (Sadece Owner silebilir.)
+ */
 class ProjectTest extends TestCase
 {
     use RefreshDatabase;

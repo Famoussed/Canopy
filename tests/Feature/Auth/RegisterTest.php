@@ -8,6 +8,29 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Kullanıcı Kayıt (Register) Testi
+ *
+ * Bu test sınıfı, yeni kullanıcı kayıt işleminin doğru çalıştığını,
+ * validasyon kurallarının uygulandığını ve benzersiz e-posta kontrolünün
+ * yapıldığını test eder. Tüm istekler POST /api/auth/register endpoint'ine yapılır.
+ *
+ * Test Edilen Senaryolar:
+ *  - test_user_can_register:
+ *    Geçerli name, email, password ve password_confirmation verileriyle
+ *    kayıt isteği yapılır. HTTP 201 (Created) dönmesi, yanıtta id, name,
+ *    email, created_at alanlarının bulunması ve veritabanında ilgili
+ *    e-posta adresinin mevcut olması beklenir.
+ *
+ *  - test_registration_requires_valid_data:
+ *    Boş bir istek gönderilir. HTTP 422 (Unprocessable Entity) dönmesi
+ *    ve name, email, password alanlarında validasyon hataları olması beklenir.
+ *
+ *  - test_registration_requires_unique_email:
+ *    Zaten kayıtlı olan bir e-posta adresiyle tekrar kayıt yapılmaya
+ *    çalışılır. HTTP 422 dönmesi ve email alanında validasyon hatası
+ *    olması beklenir. (Benzersiz e-posta kuralı.)
+ */
 class RegisterTest extends TestCase
 {
     use RefreshDatabase;

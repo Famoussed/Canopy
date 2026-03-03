@@ -13,6 +13,27 @@ use App\Models\UserStory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Task Durum Değişikliği Testi (ChangeTaskStatusAction)
+ *
+ * Bu test sınıfı, bir Task'ın durumunun (status) değiştirilmesi sırasında
+ * uygulanan iş kurallarını doğrular. Özellikle atanmamış görevlerin
+ * başlatılamaması kuralını ve atanmış görevlerin sorunsuz başlayabilmesini test eder.
+ *
+ * Kullanılan Action: ChangeTaskStatusAction
+ * Bağımlılıklar: Task modeli, User modeli, UserStory modeli, TaskStatus enum
+ * İlgili Exception: TaskNotAssignedException
+ *
+ * Test Edilen Senaryolar:
+ *  - test_cannot_start_unassigned_task:
+ *    Kimseye atanmamış (assigned_to = null) bir Task oluşturulur ve
+ *    durumu "InProgress"a çekilmeye çalışılır. TaskNotAssignedException
+ *    fırlatılması beklenir. (İş Kuralı: Atanmamış görev başlatılamaz.)
+ *
+ *  - test_assigned_task_can_start:
+ *    Bir kullanıcıya atanmış Task oluşturulur ve durumu "InProgress"a çekilir.
+ *    Task durumunun başarıyla InProgress'e geçmesi beklenir.
+ */
 class ChangeTaskStatusActionTest extends TestCase
 {
     use RefreshDatabase;

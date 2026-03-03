@@ -10,6 +10,42 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Rol Tabanlı Erişim Kontrolü (RBAC) Testi
+ *
+ * Bu test sınıfı, proje içindeki farklı rollerin (Owner, Moderator, Member)
+ * çeşitli işlemlere erişim yetkilerinin doğru uygulanıp uygulanmadığını test eder.
+ * Her testten önce setUp() içinde bir proje ve 3 farklı rolde kullanıcı oluşturulur:
+ *   - owner: Proje sahibi (Owner rolü)
+ *   - moderator: Moderatör (Moderator rolü)
+ *   - member: Üye (Member rolü)
+ *
+ * Test Edilen Senaryolar:
+ *  - test_member_cannot_create_story:
+ *    "Member" rolündeki kullanıcı User Story oluşturmaya çalışır.
+ *    HTTP 403 dönmesi beklenir. (Member story oluşturamaz.)
+ *
+ *  - test_moderator_can_create_story:
+ *    "Moderator" rolündeki kullanıcı User Story oluşturur.
+ *    HTTP 201 dönmesi beklenir. (Moderator story oluşturabilir.)
+ *
+ *  - test_member_can_create_issue:
+ *    "Member" rolündeki kullanıcı Issue (bug report) oluşturur.
+ *    HTTP 201 dönmesi beklenir. (Member issue oluşturabilir.)
+ *
+ *  - test_non_member_cannot_access_project:
+ *    Projeye üye olmayan bir dış kullanıcı proje içeriğine erişmeye çalışır.
+ *    HTTP 403 dönmesi beklenir. (Proje üyesi olmayanlar erişemez.)
+ *
+ *  - test_super_admin_can_access_any_project:
+ *    Super Admin rolündeki kullanıcı, üyesi olmadığı bir projeye erişir.
+ *    HTTP 200 dönmesi beklenir. (Super Admin her projeye erişebilir.)
+ *
+ *  - test_owner_cannot_be_removed:
+ *    Moderatör, proje sahibini (Owner) projeden çıkarmaya çalışır.
+ *    Owner'ın project_memberships tablosunda hâlâ mevcut olması beklenir.
+ *    (BR-14: Proje sahibi projeden çıkarılamaz.)
+ */
 class RbacTest extends TestCase
 {
     use RefreshDatabase;
