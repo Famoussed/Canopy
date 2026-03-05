@@ -96,11 +96,9 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
     }
 
-    public function render(): mixed
+    public function rendering(): void
     {
         $this->story->load(['tasks.assignee', 'epic', 'sprint', 'creator', 'storyPoints', 'attachments']);
-
-        return view($this->viewName());
     }
 }
 

@@ -5,6 +5,7 @@ use App\Models\Project;
 use App\Models\User;
 use App\Services\MembershipService;
 use App\Services\ProjectService;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -120,14 +121,13 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         $this->redirect('/dashboard', navigate: true);
     }
 
-    public function render(): mixed
+    #[Computed]
+    public function members(): mixed
     {
-        $members = $this->project->memberships()
+        return $this->project->memberships()
             ->with('user')
             ->orderByRaw("CASE WHEN role = 'owner' THEN 0 WHEN role = 'moderator' THEN 1 ELSE 2 END")
             ->get();
-
-        return view($this->viewName(), compact('members'));
     }
 }
 
@@ -155,7 +155,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
     {{-- Members --}}
     <flux:card class="mb-6">
         <div class="flex items-center justify-between mb-4">
-            <flux:heading>Üyeler ({{ $members->count() }})</flux:heading>
+            <flux:heading>Üyeler ({{ $this->members->count() }})</flux:heading>
             <flux:button variant="outline" size="sm" icon="user-plus" wire:click="$toggle('showAddMember')">Üye Ekle</flux:button>
         </div>
 
@@ -174,7 +174,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         @endif
 
         <div class="divide-y divide-zinc-100 dark:divide-zinc-700">
-            @foreach ($members as $membership)
+            @foreach ($this->members as $membership)
                 <div wire:key="member-{{ $membership->id }}" class="flex items-center gap-3 py-3">
                     <flux:avatar size="sm" :name="$membership->user->name" />
                     <div class="flex-1 min-w-0">

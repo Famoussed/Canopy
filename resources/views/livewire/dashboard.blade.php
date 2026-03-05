@@ -1,20 +1,20 @@
 <?php
 
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class extends Component {
-    public function render(): mixed
+    #[Computed]
+    public function projects(): mixed
     {
-        return view($this->viewName(), [
-            'projects' => auth()->user()
-                ->projectMemberships()
-                ->with('project.owner', 'project.memberships')
-                ->get()
-                ->pluck('project')
-                ->filter(),
-        ]);
+        return auth()->user()
+            ->projectMemberships()
+            ->with('project.owner', 'project.memberships')
+            ->get()
+            ->pluck('project')
+            ->filter();
     }
 }
 
@@ -25,7 +25,9 @@ new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class 
         <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
         <a href="/dashboard" wire:navigate class="flex items-center gap-2 px-2">
-            <flux:icon name="tree-pine" class="size-6 text-indigo-600" />
+            <div class="size-7 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+                <flux:icon name="squares-2x2" variant="mini" class="size-4 text-white" />
+            </div>
             <span class="text-lg font-bold text-zinc-900 dark:text-white">Canopy</span>
         </a>
 
@@ -62,7 +64,7 @@ new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class 
             </flux:button>
         </div>
 
-        @if ($projects->isEmpty())
+        @if ($this->projects->isEmpty())
             <flux:card class="text-center py-16">
                 <div class="flex flex-col items-center gap-4">
                     <flux:icon name="folder-open" class="size-12 text-zinc-300" />
@@ -77,7 +79,7 @@ new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class 
             </flux:card>
         @else
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                @foreach ($projects as $project)
+                @foreach ($this->projects as $project)
                     <flux:card class="hover:shadow-md transition-shadow">
                         <a href="/projects/{{ $project->slug }}" wire:navigate class="block space-y-3">
                             <div class="flex items-center justify-between">

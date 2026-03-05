@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Project;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -13,26 +14,44 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
         $this->project = $project;
     }
 
-    public function render(): mixed
+    #[Computed]
+    public function activeSprint(): mixed
     {
-        $activeSprint = $this->project->sprints()->active()->first();
-        $backlogCount = $this->project->userStories()->backlog()->count();
-        $totalStories = $this->project->userStories()->count();
-        $doneStories = $this->project->userStories()->byStatus('done')->count();
-        $openIssues = $this->project->issues()->open()->count();
+        return $this->project->sprints()->active()->first();
+    }
 
-        return view($this->viewName(), [
-            'activeSprint' => $activeSprint,
-            'backlogCount' => $backlogCount,
-            'totalStories' => $totalStories,
-            'doneStories' => $doneStories,
-            'openIssues' => $openIssues,
-            'recentStories' => $this->project->userStories()
-                ->with('epic', 'sprint')
-                ->latest()
-                ->limit(5)
-                ->get(),
-        ]);
+    #[Computed]
+    public function backlogCount(): int
+    {
+        return $this->project->userStories()->backlog()->count();
+    }
+
+    #[Computed]
+    public function totalStories(): int
+    {
+        return $this->project->userStories()->count();
+    }
+
+    #[Computed]
+    public function doneStories(): int
+    {
+        return $this->project->userStories()->byStatus('done')->count();
+    }
+
+    #[Computed]
+    public function openIssues(): int
+    {
+        return $this->project->issues()->open()->count();
+    }
+
+    #[Computed]
+    public function recentStories(): mixed
+    {
+        return $this->project->userStories()
+            ->with('epic', 'sprint')
+            ->latest()
+            ->limit(5)
+            ->get();
     }
 }
 
@@ -50,22 +69,22 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <x-stat-card
             label="Backlog"
-            :value="$backlogCount"
+            :value="$this->backlogCount"
             icon="queue-list"
         />
         <x-stat-card
             label="Toplam Story"
-            :value="$totalStories"
+            :value="$this->totalStories"
             icon="document-text"
         />
         <x-stat-card
             label="Tamamlanan"
-            :value="$doneStories"
+            :value="$this->doneStories"
             icon="check-circle"
         />
         <x-stat-card
             label="Açık Issue"
-            :value="$openIssues"
+            :value="$this->openIssues"
             icon="exclamation-triangle"
         />
     </div>
@@ -74,15 +93,15 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
         {{-- Active Sprint --}}
         <flux:card>
             <flux:heading size="lg" class="mb-4">Aktif Sprint</flux:heading>
-            @if ($activeSprint)
+            @if ($this->activeSprint)
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">
-                        <flux:heading>{{ $activeSprint->name }}</flux:heading>
-                        <x-status-badge :status="$activeSprint->status" />
+                        <flux:heading>{{ $this->activeSprint->name }}</flux:heading>
+                        <x-status-badge :status="$this->activeSprint->status" />
                     </div>
                     <div class="flex items-center gap-4 text-sm text-zinc-500">
-                        <span>{{ $activeSprint->start_date?->format('d M') }} — {{ $activeSprint->end_date?->format('d M Y') }}</span>
-                        <span>{{ $activeSprint->userStories->count() }} story</span>
+                        <span>{{ $this->activeSprint->start_date?->format('d M') }} — {{ $this->activeSprint->end_date?->format('d M Y') }}</span>
+                        <span>{{ $this->activeSprint->userStories->count() }} story</span>
                     </div>
                     <flux:button variant="outline" size="sm" href="/projects/{{ $project->slug }}/board" wire:navigate>
                         Board'u Aç
@@ -96,11 +115,11 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
         {{-- Recent Stories --}}
         <flux:card>
             <flux:heading size="lg" class="mb-4">Son Eklenen Story'ler</flux:heading>
-            @if ($recentStories->isEmpty())
+            @if ($this->recentStories->isEmpty())
                 <flux:text class="text-zinc-400">Henüz story eklenmemiş.</flux:text>
             @else
                 <div class="divide-y divide-zinc-100 dark:divide-zinc-700">
-                    @foreach ($recentStories as $story)
+                    @foreach ($this->recentStories as $story)
                         <a href="/projects/{{ $project->slug }}/stories/{{ $story->id }}" wire:navigate
                            class="flex items-center justify-between py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 -mx-2 px-2 rounded">
                             <div class="flex items-center gap-2 min-w-0">

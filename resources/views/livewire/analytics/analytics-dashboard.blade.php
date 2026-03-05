@@ -3,6 +3,7 @@
 use App\Models\Project;
 use App\Services\BurndownService;
 use App\Services\VelocityService;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -17,36 +18,60 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
         $this->project = $project;
     }
 
-    public function render(): mixed
+    #[Computed]
+    public function activeSprint(): mixed
     {
-        $activeSprint = $this->project->sprints()->active()->with('userStories')->first();
+        return $this->project->sprints()->active()->with('userStories')->first();
+    }
 
-        $velocityData = app(VelocityService::class)->getVelocityData($this->project, $this->velocitySprintCount);
+    #[Computed]
+    public function velocityData(): array
+    {
+        return app(VelocityService::class)->getVelocityData($this->project, $this->velocitySprintCount);
+    }
 
-        $burndownData = $activeSprint
-            ? app(BurndownService::class)->getBurndownData($activeSprint)
+    #[Computed]
+    public function burndownData(): array
+    {
+        return $this->activeSprint
+            ? app(BurndownService::class)->getBurndownData($this->activeSprint)
             : [];
+    }
 
-        // Summary stats
-        $totalStories = $this->project->userStories()->count();
-        $completedStories = $this->project->userStories()->byStatus(\App\Enums\StoryStatus::Done)->count();
-        $totalIssues = $this->project->issues()->count();
-        $openIssues = $this->project->issues()->open()->count();
-        $closedSprints = $this->project->sprints()->closed()->count();
+    #[Computed]
+    public function totalStories(): int
+    {
+        return $this->project->userStories()->count();
+    }
 
-        $completionRate = $totalStories > 0 ? round(($completedStories / $totalStories) * 100) : 0;
+    #[Computed]
+    public function completedStories(): int
+    {
+        return $this->project->userStories()->byStatus(\App\Enums\StoryStatus::Done)->count();
+    }
 
-        return view($this->viewName(), compact(
-            'activeSprint',
-            'velocityData',
-            'burndownData',
-            'totalStories',
-            'completedStories',
-            'totalIssues',
-            'openIssues',
-            'closedSprints',
-            'completionRate',
-        ));
+    #[Computed]
+    public function totalIssues(): int
+    {
+        return $this->project->issues()->count();
+    }
+
+    #[Computed]
+    public function openIssues(): int
+    {
+        return $this->project->issues()->open()->count();
+    }
+
+    #[Computed]
+    public function closedSprints(): int
+    {
+        return $this->project->sprints()->closed()->count();
+    }
+
+    #[Computed]
+    public function completionRate(): int
+    {
+        return $this->totalStories > 0 ? (int) round(($this->completedStories / $this->totalStories) * 100) : 0;
     }
 }
 
@@ -57,24 +82,24 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
 
     {{-- Summary Stats --}}
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-        <x-stat-card label="Toplam Story" :value="$totalStories" icon="document-text" />
-        <x-stat-card label="Tamamlanan" :value="$completedStories" icon="check-circle" color="green" />
-        <x-stat-card label="Tamamlanma" :value="$completionRate . '%'" icon="chart-pie" color="indigo" />
-        <x-stat-card label="Kapatılan Sprint" :value="$closedSprints" icon="clock" color="blue" />
-        <x-stat-card label="Toplam Issue" :value="$totalIssues" icon="clipboard-document-list" />
-        <x-stat-card label="Açık Issue" :value="$openIssues" icon="exclamation-circle" color="red" />
+        <x-stat-card label="Toplam Story" :value="$this->totalStories" icon="document-text" />
+        <x-stat-card label="Tamamlanan" :value="$this->completedStories" icon="check-circle" color="green" />
+        <x-stat-card label="Tamamlanma" :value="$this->completionRate . '%'" icon="chart-pie" color="indigo" />
+        <x-stat-card label="Kapatılan Sprint" :value="$this->closedSprints" icon="clock" color="blue" />
+        <x-stat-card label="Toplam Issue" :value="$this->totalIssues" icon="clipboard-document-list" />
+        <x-stat-card label="Açık Issue" :value="$this->openIssues" icon="exclamation-circle" color="red" />
     </div>
 
     <div class="grid gap-6 lg:grid-cols-2">
         {{-- Velocity Chart --}}
         <flux:card>
             <flux:heading class="mb-4">Velocity (Son {{ $velocitySprintCount }} Sprint)</flux:heading>
-            @if (empty($velocityData))
+            @if (empty($this->velocityData))
                 <x-empty-state icon="chart-bar" title="Veri yok" description="Kapatılmış sprint verisi bulunamadı." />
             @else
                 <div
                     x-data="{
-                        data: @js($velocityData),
+                        data: @js($this->velocityData),
                         get maxPoints() {
                             return Math.max(...this.data.map(d => d.points || d.story_points || 0), 1);
                         }
@@ -101,16 +126,16 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
         <flux:card>
             <flux:heading class="mb-4">
                 Burndown
-                @if ($activeSprint)
-                    <flux:badge size="sm" color="indigo" class="ml-2">{{ $activeSprint->name }}</flux:badge>
+                @if ($this->activeSprint)
+                    <flux:badge size="sm" color="indigo" class="ml-2">{{ $this->activeSprint->name }}</flux:badge>
                 @endif
             </flux:heading>
-            @if (empty($burndownData))
+            @if (empty($this->burndownData))
                 <x-empty-state icon="chart-bar" title="Aktif sprint yok" description="Burndown grafiği aktif bir sprint gerektirir." />
             @else
                 <div
                     x-data="{
-                        data: @js($burndownData),
+                        data: @js($this->burndownData),
                         get maxValue() {
                             return Math.max(...this.data.map(d => d.ideal || d.remaining || 0), 1);
                         },

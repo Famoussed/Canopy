@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\Sprint;
 use App\Services\TaskService;
 use App\Services\UserStoryService;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -50,20 +51,25 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
         }
     }
 
-    public function render(): mixed
+    #[Computed]
+    public function sprint(): mixed
     {
-        $sprint = $this->selectedSprintId
+        return $this->selectedSprintId
             ? Sprint::with(['userStories.tasks.assignee', 'userStories.epic'])->find($this->selectedSprintId)
             : null;
+    }
 
+    #[Computed]
+    public function columns(): mixed
+    {
         $columns = collect([
             StoryStatus::New->value => ['label' => 'New', 'color' => 'sky', 'stories' => collect()],
             StoryStatus::InProgress->value => ['label' => 'In Progress', 'color' => 'amber', 'stories' => collect()],
             StoryStatus::Done->value => ['label' => 'Done', 'color' => 'emerald', 'stories' => collect()],
         ]);
 
-        if ($sprint) {
-            foreach ($sprint->userStories as $story) {
+        if ($this->sprint) {
+            foreach ($this->sprint->userStories as $story) {
                 $statusKey = $story->status->value;
                 if ($columns->has($statusKey)) {
                     $columns[$statusKey]['stories']->push($story);
@@ -71,13 +77,15 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
             }
         }
 
-        return view($this->viewName(), [
-            'sprint' => $sprint,
-            'columns' => $columns,
-            'sprints' => $this->project->sprints()
-                ->whereIn('status', ['planning', 'active'])
-                ->get(),
-        ]);
+        return $columns;
+    }
+
+    #[Computed]
+    public function sprints(): mixed
+    {
+        return $this->project->sprints()
+            ->whereIn('status', ['planning', 'active'])
+            ->get();
     }
 }
 
@@ -93,18 +101,18 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
     <div class="flex items-center justify-between mb-6">
         <flux:heading size="xl">Kanban Board</flux:heading>
 
-        @if ($sprints->count() > 1)
+        @if ($this->sprints->count() > 1)
             <flux:select wire:model.live="selectedSprintId" size="sm" class="w-56">
-                @foreach ($sprints as $s)
+                @foreach ($this->sprints as $s)
                     <flux:select.option :value="$s->id">{{ $s->name }}</flux:select.option>
                 @endforeach
             </flux:select>
-        @elseif ($sprint)
-            <flux:badge color="indigo">{{ $sprint->name }}</flux:badge>
+        @elseif ($this->sprint)
+            <flux:badge color="indigo">{{ $this->sprint->name }}</flux:badge>
         @endif
     </div>
 
-    @if (!$sprint)
+    @if (!$this->sprint)
         <x-empty-state
             icon="view-columns"
             heading="Sprint bulunamadı"
@@ -114,7 +122,7 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
         />
     @else
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[60vh]">
-            @foreach ($columns as $statusValue => $column)
+            @foreach ($this->columns as $statusValue => $column)
                 <div
                     class="flex flex-col rounded-lg bg-zinc-50 dark:bg-zinc-900 p-3"
                     x-data="{}"

@@ -5,7 +5,9 @@
         <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
         <a href="/dashboard" wire:navigate class="flex items-center gap-2 px-2">
-            <flux:icon name="tree-pine" class="size-6 text-indigo-600" />
+            <div class="size-7 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+                <flux:icon name="squares-2x2" variant="mini" class="size-4 text-white" />
+            </div>
             <span class="text-lg font-bold text-zinc-900 dark:text-white">Canopy</span>
         </a>
 

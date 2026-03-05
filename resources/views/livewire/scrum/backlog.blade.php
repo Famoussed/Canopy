@@ -4,6 +4,7 @@ use App\Models\Project;
 use App\Models\UserStory;
 use App\Services\UserStoryService;
 use App\Services\SprintService;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -49,25 +50,34 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
         app(UserStoryService::class)->reorder($orderedIds, auth()->user());
     }
 
-    public function render(): mixed
+    #[Computed]
+    public function stories(): mixed
     {
-        $storiesQuery = $this->project->userStories()
+        $query = $this->project->userStories()
             ->backlog()
             ->with('epic', 'creator', 'tasks')
             ->ordered();
 
         if ($this->filterEpicId) {
-            $storiesQuery->where('epic_id', $this->filterEpicId);
+            $query->where('epic_id', $this->filterEpicId);
         }
 
-        return view($this->viewName(), [
-            'stories' => $storiesQuery->get(),
-            'sprints' => $this->project->sprints()
-                ->whereIn('status', ['planning', 'active'])
-                ->withCount('userStories')
-                ->get(),
-            'epics' => $this->project->epics()->orderBy('title')->get(),
-        ]);
+        return $query->get();
+    }
+
+    #[Computed]
+    public function sprints(): mixed
+    {
+        return $this->project->sprints()
+            ->whereIn('status', ['planning', 'active'])
+            ->withCount('userStories')
+            ->get();
+    }
+
+    #[Computed]
+    public function epics(): mixed
+    {
+        return $this->project->epics()->orderBy('title')->get();
     }
 }
 
@@ -117,14 +127,14 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
             <div class="flex items-center gap-3 mb-4">
                 <flux:select wire:model.live="filterEpicId" placeholder="Tüm Epic'ler" size="sm" class="w-48">
                     <flux:select.option value="">Tüm Epic'ler</flux:select.option>
-                    @foreach ($epics as $epic)
+                    @foreach ($this->epics as $epic)
                         <flux:select.option :value="$epic->id">{{ $epic->title }}</flux:select.option>
                     @endforeach
                 </flux:select>
-                <flux:badge size="sm" color="zinc">{{ $stories->count() }} story</flux:badge>
+                <flux:badge size="sm" color="zinc">{{ $this->stories->count() }} story</flux:badge>
             </div>
 
-            @if ($stories->isEmpty())
+            @if ($this->stories->isEmpty())
                 <x-empty-state
                     icon="queue-list"
                     heading="Backlog boş"
@@ -146,7 +156,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
                         })
                     "
                 >
-                    @foreach ($stories as $story)
+                    @foreach ($this->stories as $story)
                         <div
                             wire:key="story-{{ $story->id }}"
                             data-story-id="{{ $story->id }}"
@@ -185,7 +195,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
                             <flux:dropdown>
                                 <flux:button icon="ellipsis-vertical" variant="ghost" size="sm" class="opacity-0 group-hover:opacity-100" />
                                 <flux:menu>
-                                    @foreach ($sprints as $sprint)
+                                    @foreach ($this->sprints as $sprint)
                                         <flux:menu.item wire:click="moveToSprint('{{ $story->id }}', '{{ $sprint->id }}')">
                                             Sprint'e Taşı: {{ $sprint->name }}
                                         </flux:menu.item>
@@ -202,7 +212,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
         <div class="w-72 shrink-0 hidden lg:block space-y-4">
             <flux:heading size="lg">Sprints</flux:heading>
 
-            @forelse ($sprints as $sprint)
+            @forelse ($this->sprints as $sprint)
                 <flux:card class="space-y-2">
                     <div class="flex items-center justify-between">
                         <flux:heading>{{ $sprint->name }}</flux:heading>

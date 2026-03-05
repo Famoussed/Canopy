@@ -25,12 +25,10 @@ new #[Layout('components.layouts.guest')] #[Title('Giriş Yap — Canopy')] clas
         $this->validate();
 
         try {
-            $user = app(AuthService::class)->login([
+            app(AuthService::class)->login([
                 'email' => $this->email,
                 'password' => $this->password,
             ]);
-
-            auth()->guard('web')->login($user);
 
             session()->regenerate();
 

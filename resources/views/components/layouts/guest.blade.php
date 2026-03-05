@@ -16,7 +16,9 @@
     <div class="w-full max-w-md px-6">
         <div class="mb-8 text-center">
             <a href="/" wire:navigate class="inline-flex items-center gap-2">
-                <flux:icon name="tree-pine" class="size-8 text-indigo-600" />
+                <div class="size-9 rounded-xl bg-indigo-600 flex items-center justify-center">
+                    <flux:icon name="squares-2x2" variant="mini" class="size-5 text-white" />
+                </div>
                 <span class="text-2xl font-bold text-zinc-900 dark:text-white">Canopy</span>
             </a>
         </div>

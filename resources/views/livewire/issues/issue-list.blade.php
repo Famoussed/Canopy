@@ -7,6 +7,7 @@ use App\Enums\IssueType;
 use App\Models\Issue;
 use App\Models\Project;
 use App\Services\IssueService;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -129,7 +130,8 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
         app(IssueService::class)->delete($issue);
     }
 
-    public function render(): mixed
+    #[Computed]
+    public function issues(): mixed
     {
         $query = $this->project->issues()->with(['assignee', 'creator']);
 
@@ -143,16 +145,18 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
             $query->where('priority', $this->priorityFilter);
         }
 
-        $issues = $query->latest()->get();
+        return $query->latest()->get();
+    }
 
-        $counts = [
+    #[Computed]
+    public function counts(): array
+    {
+        return [
             'total' => $this->project->issues()->count(),
             'open' => $this->project->issues()->open()->count(),
             'bugs' => $this->project->issues()->byType(IssueType::Bug)->count(),
             'critical' => $this->project->issues()->bySeverity(IssueSeverity::Critical)->count(),
         ];
-
-        return view($this->viewName(), compact('issues', 'counts'));
     }
 }
 
@@ -166,10 +170,10 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
 
     {{-- Summary Cards --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <x-stat-card label="Toplam" :value="$counts['total']" icon="clipboard-document-list" />
-        <x-stat-card label="Açık" :value="$counts['open']" icon="exclamation-circle" color="blue" />
-        <x-stat-card label="Bug" :value="$counts['bugs']" icon="bug-ant" color="red" />
-        <x-stat-card label="Kritik" :value="$counts['critical']" icon="fire" color="red" />
+        <x-stat-card label="Toplam" :value="$this->counts['total']" icon="clipboard-document-list" />
+        <x-stat-card label="Açık" :value="$this->counts['open']" icon="exclamation-circle" color="blue" />
+        <x-stat-card label="Bug" :value="$this->counts['bugs']" icon="bug-ant" color="red" />
+        <x-stat-card label="Kritik" :value="$this->counts['critical']" icon="fire" color="red" />
     </div>
 
     @session('error')
@@ -238,7 +242,7 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
     @endif
 
     {{-- Issue Table --}}
-    @if ($issues->isEmpty())
+    @if ($this->issues->isEmpty())
         <x-empty-state
             icon="clipboard-document-list"
             title="Issue bulunamadı"
@@ -256,7 +260,7 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
                 <flux:table.column></flux:table.column>
             </flux:table.columns>
             <flux:table.rows>
-                @foreach ($issues as $issue)
+                @foreach ($this->issues as $issue)
                     <flux:table.row wire:key="issue-{{ $issue->id }}">
                         <flux:table.cell>
                             <flux:icon :name="$issue->type->icon()" variant="mini" class="size-5" style="color: {{ $issue->type->color() }}" />

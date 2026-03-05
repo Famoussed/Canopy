@@ -3,6 +3,7 @@
 use App\Models\Epic;
 use App\Models\Project;
 use App\Services\EpicService;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -82,14 +83,13 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
         app(EpicService::class)->delete($epic);
     }
 
-    public function render(): mixed
+    #[Computed]
+    public function epics(): mixed
     {
-        $epics = $this->project->epics()
+        return $this->project->epics()
             ->withCount('userStories')
             ->orderBy('order')
             ->get();
-
-        return view($this->viewName(), compact('epics'));
     }
 }
 
@@ -119,7 +119,7 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
         </flux:card>
     @endif
 
-    @if ($epics->isEmpty())
+    @if ($this->epics->isEmpty())
         <x-empty-state
             icon="rectangle-stack"
             title="Henüz epic yok"
@@ -127,7 +127,7 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
         />
     @else
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            @foreach ($epics as $epic)
+            @foreach ($this->epics as $epic)
                 <flux:card wire:key="epic-{{ $epic->id }}" class="relative overflow-hidden">
                     {{-- Color indicator strip --}}
                     <div class="absolute top-0 left-0 right-0 h-1" style="background-color: {{ $epic->color ?? '#6366F1' }}"></div>

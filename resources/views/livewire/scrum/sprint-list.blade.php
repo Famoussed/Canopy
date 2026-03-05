@@ -5,6 +5,7 @@ use App\Exceptions\ActiveSprintAlreadyExistsException;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Services\SprintService;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -100,15 +101,14 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
         app(SprintService::class)->delete($sprint);
     }
 
-    public function render(): mixed
+    #[Computed]
+    public function sprints(): mixed
     {
-        $sprints = $this->project->sprints()
+        return $this->project->sprints()
             ->withCount('userStories')
             ->orderByRaw("CASE WHEN status = 'active' THEN 0 WHEN status = 'planning' THEN 1 ELSE 2 END")
             ->orderBy('start_date', 'desc')
             ->get();
-
-        return view($this->viewName(), compact('sprints'));
     }
 }
 
@@ -143,7 +143,7 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
         </flux:card>
     @endif
 
-    @if ($sprints->isEmpty())
+    @if ($this->sprints->isEmpty())
         <x-empty-state
             icon="calendar-days"
             title="Henüz sprint yok"
@@ -151,7 +151,7 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
         />
     @else
         <div class="space-y-4">
-            @foreach ($sprints as $sprint)
+            @foreach ($this->sprints as $sprint)
                 <flux:card wire:key="sprint-{{ $sprint->id }}">
                     @if ($editingSprintId === $sprint->id)
                         <form wire:submit="updateSprint" class="space-y-4">
