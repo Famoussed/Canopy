@@ -32,8 +32,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
 
         app(UserStoryService::class)->create([
             'title' => $this->newStoryTitle,
-            'project_id' => $this->project->id,
-        ], auth()->user());
+        ], $this->project, auth()->user());
 
         $this->newStoryTitle = '';
         $this->showCreateForm = false;
@@ -42,8 +41,9 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
     public function moveToSprint(string $storyId, string $sprintId): void
     {
         $story = UserStory::findOrFail($storyId);
+        $sprint = \App\Models\Sprint::findOrFail($sprintId);
 
-        app(UserStoryService::class)->moveToSprint($story, $sprintId, auth()->user());
+        app(UserStoryService::class)->moveToSprint($story, $sprint, auth()->user());
     }
 
     public function reorder(array $orderedIds): void

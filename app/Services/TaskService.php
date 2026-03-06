@@ -47,7 +47,7 @@ class TaskService
 
             $task = $this->changeStatusAction->execute($task, $newStatus);
 
-            TaskStatusChanged::dispatch($task, $oldStatus, $newStatus, $user);
+            TaskStatusChanged::dispatch($task, $oldStatus->value, $newStatus->value, $user);
 
             return $task;
         });

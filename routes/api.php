@@ -72,11 +72,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::apiResource('epics', EpicController::class);
 
             // User Stories
+            Route::put('stories/reorder', [UserStoryController::class, 'reorder'])->name('stories.reorder');
             Route::apiResource('stories', UserStoryController::class);
             Route::put('stories/{story}/status', [UserStoryController::class, 'changeStatus'])->name('stories.change-status');
             Route::post('stories/{story}/move-to-sprint', [UserStoryController::class, 'moveToSprint'])->name('stories.move-to-sprint');
             Route::put('stories/{story}/estimate', [UserStoryController::class, 'estimate'])->name('stories.estimate');
-            Route::put('stories/reorder', [UserStoryController::class, 'reorder'])->name('stories.reorder');
 
             // Sprints
             Route::apiResource('sprints', SprintController::class);

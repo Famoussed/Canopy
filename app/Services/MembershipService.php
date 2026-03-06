@@ -28,7 +28,7 @@ class MembershipService
         return DB::transaction(function () use ($project, $user, $role, $addedBy) {
             $membership = $this->addAction->execute($project, $user, $role);
 
-            MemberAdded::dispatch($project, $user, $addedBy);
+            MemberAdded::dispatch($project, $user, $membership, $addedBy);
 
             return $membership;
         });

@@ -10,7 +10,7 @@ class CreateTaskRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Policy üzerinden kontrol edilir
+        return $this->user()->can('create', [\App\Models\Task::class, $this->route('story')->project]);
     }
 
     /**
