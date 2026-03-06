@@ -63,10 +63,10 @@ Proje bazlı rol tabanlı erişim kontrolü (Role-Based Access Control), Policy 
 | P14 | Sprint oluştur | ✅ | ✅ | ❌ |
 | P15 | Sprint başlat / kapat | ✅ | ✅ | ❌ |
 | P16 | Sprint'e story taşı | ✅ | ✅ | ❌ |
-| P17 | Task oluştur | ✅ | ✅ | ❌ |
+| P17 | Task oluştur | ✅ | ✅ | ✅ |
 | P18 | Task başkasına ata | ✅ | ✅ | ❌ |
-| P19 | Kendi task durumunu değiştir | ✅ | ✅ | ✅ |
-| P20 | Herhangi bir task'ı düzenle | ✅ | ✅ | ❌ |
+| P19 | Kendi oluşturduğu task'ın durumunu değiştir | ✅ | ✅ | ✅ |
+| P20 | Task düzenle (kendi oluşturduğu) | ✅ | ✅ | ✅ |
 | P21 | Issue oluştur | ✅ | ✅ | ✅ |
 | P22 | Herkesin issue'sunu düzenle | ✅ | ✅ | ❌ |
 | P23 | Kendi issue'sunu düzenle | ✅ | ✅ | ✅ |
@@ -176,13 +176,13 @@ class UserStoryPolicy
 ```php
 class TaskPolicy
 {
-    // P17: Task oluştur
+    // P17: Task oluştur — Tüm proje üyeleri
     public function create(User $user, Project $project): bool
     {
-        return $this->isAtLeast($user, $project, ProjectRole::Moderator);
+        return $this->getMemberRole($user, $project) !== null;
     }
 
-    // P19: Kendi task durumunu değiştir
+    // P19: Kendi oluşturduğu task'ın durumunu değiştir
     public function changeStatus(User $user, Task $task): bool
     {
         $role = $this->getMemberRole($user, $task->userStory->project);
@@ -192,14 +192,22 @@ class TaskPolicy
         // Owner ve Moderator her task'ı değiştirebilir
         if ($role->rank() >= ProjectRole::Moderator->rank()) return true;
 
-        // Member sadece kendine atanmış task
-        return $task->assigned_to === $user->id;
+        // Member sadece kendi oluşturduğu task'ın durumunu değiştirebilir
+        return $task->created_by === $user->id;
     }
 
-    // P20: Herhangi bir task'ı düzenle
+    // P20: Task düzenle (kendi oluşturduğu veya Moderator+)
     public function update(User $user, Task $task): bool
     {
-        return $this->isAtLeast($user, $task->userStory->project, ProjectRole::Moderator);
+        $role = $this->getMemberRole($user, $task->userStory->project);
+
+        if ($role === null) return false;
+
+        // Owner ve Moderator her task'ı düzenleyebilir
+        if ($role->rank() >= ProjectRole::Moderator->rank()) return true;
+
+        // Member sadece kendi oluşturduğu task'ı düzenleyebilir
+        return $task->created_by === $user->id;
     }
 }
 ```

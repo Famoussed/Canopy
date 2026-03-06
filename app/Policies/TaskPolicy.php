@@ -21,15 +21,15 @@ class TaskPolicy
     }
 
     /**
-     * P17: Task oluştur — Owner + Moderator
+     * P17: Task oluştur — Tüm proje üyeleri
      */
     public function create(User $user, Project $project): bool
     {
-        return $this->isAtLeast($user, $project, ProjectRole::Moderator);
+        return $this->getMemberRole($user, $project) !== null;
     }
 
     /**
-     * P19: Kendi task durumunu değiştir — tüm üyeler (kendi task'ları)
+     * P19: Task durumunu değiştir — Owner + Moderator + Task Oluşturan
      */
     public function changeStatus(User $user, Task $task): bool
     {
@@ -45,16 +45,29 @@ class TaskPolicy
             return true;
         }
 
-        // Member sadece kendine atanmış task
-        return $task->assigned_to === $user->id;
+        // Member sadece kendi oluşturduğu task'ın durumunu değiştirebilir
+        return $task->created_by === $user->id;
     }
 
     /**
-     * P20: Herhangi bir task'ı düzenle — Owner + Moderator
+     * P20: Task düzenle — Owner + Moderator + Task Oluşturan
      */
     public function update(User $user, Task $task): bool
     {
-        return $this->isAtLeast($user, $task->userStory->project, ProjectRole::Moderator);
+        $project = $task->userStory->project;
+        $role = $this->getMemberRole($user, $project);
+
+        if ($role === null) {
+            return false;
+        }
+
+        // Owner ve Moderator her task'ı düzenleyebilir
+        if ($role->isAtLeast(ProjectRole::Moderator)) {
+            return true;
+        }
+
+        // Member sadece kendi oluşturduğu task'ı düzenleyebilir
+        return $task->created_by === $user->id;
     }
 
     /**

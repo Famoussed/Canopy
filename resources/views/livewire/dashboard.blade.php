@@ -6,6 +6,15 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class extends Component {
+    public function logout(): mixed
+    {
+        auth()->logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        return $this->redirect('/login', navigate: true);
+    }
+
     #[Computed]
     public function projects(): mixed
     {
@@ -42,7 +51,7 @@ new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class 
         <flux:spacer />
 
         <flux:navlist variant="outline">
-            <flux:navlist.item icon="arrow-right-start-on-rectangle" wire:click="$dispatch('logout')">
+            <flux:navlist.item icon="arrow-right-start-on-rectangle" wire:click="logout">
                 Çıkış Yap
             </flux:navlist.item>
         </flux:navlist>

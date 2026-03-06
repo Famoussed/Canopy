@@ -46,6 +46,12 @@
             <flux:navlist.item icon="arrow-left" href="/dashboard" wire:navigate>
                 Projelere Dön
             </flux:navlist.item>
+            <form method="POST" action="/logout">
+                @csrf
+                <flux:navlist.item icon="arrow-right-start-on-rectangle" type="submit" as="button">
+                    Çıkış Yap
+                </flux:navlist.item>
+            </form>
         </flux:navlist>
     </flux:sidebar>
 

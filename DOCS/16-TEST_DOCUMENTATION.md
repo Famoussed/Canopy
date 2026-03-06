@@ -228,6 +228,9 @@ Test Edilen Senaryolar:
  - **test_member_cannot_remove_other_member**:
    Member cannot remove other member
 
+ - **test_max_member_limit_enforced_via_api**:
+   Maksimum 5 üye limitine ulaşıldığında API üzerinden yeni üye eklenmesi engellenir (422).
+
 ---
 
 ## RbacTest
@@ -273,24 +276,28 @@ Test Edilen Senaryolar:
 
 P-05, P-06, P-07: Task RBAC policy testleri.
 
-Member kendi task'ını düzenleyebilir, başkasının task'ını düzenleyemez,
-Moderator tüm task'ları düzenleyebilir senaryolarını test eder.
+Task düzenle ve durum değiştirme yetkisi: task'ı oluşturan üye, Modüratör veya Owner.
+Member kendi oluşturduğu task'ı düzenleyebilir ve durumunu değiştirebilir,
+başkasının oluşturduğu task'ta bu yetkilere sahip değildir. (P19, P20)
 
 Test Edilen Senaryolar:
  - **test_member_can_change_own_task_status**:
-   Member can change own task status
+   Member kendi oluşturduğu task'ın durumunu değiştirebilir (created_by === user.id).
 
  - **test_member_cannot_change_others_task_status**:
-   Member cannot change others task status
+   Member başkasının oluşturduğu task'ın durumunu değiştiremez.
 
  - **test_moderator_can_change_any_task_status**:
    Moderator can change any task status
 
- - **test_member_cannot_create_task**:
-   Member cannot create task
+ - **test_member_can_create_task**:
+   Tüm proje üyeleri (Member dahil) task oluşturabilir (P17).
 
  - **test_moderator_can_create_task**:
    Moderator can create task
+
+ - **test_non_member_cannot_create_task**:
+   Proje üyesi olmayan kullanıcı task oluşturamaz.
 
  - **test_member_cannot_assign_task**:
    Member cannot assign task
@@ -303,6 +310,12 @@ Test Edilen Senaryolar:
 
  - **test_owner_can_delete_task**:
    Owner can delete task
+
+ - **test_member_can_update_own_created_task**:
+   Member kendi oluşturduğu task'ı düzenleyebilir (P20).
+
+ - **test_member_cannot_update_task_created_by_others**:
+   Member başkasının oluşturduğu task'ı düzenleyemez (P20).
 
 ---
 
@@ -491,6 +504,9 @@ Test Edilen Senaryolar:
  - **test_delete_project**:
    Delete project
 
+ - **test_cannot_add_member_when_max_limit_reached**:
+   Maksimum 5 üye limitine ulaşıldığında Livewire üzerinden yeni üye eklenmesi engellenir (BR-12.1).
+
 ---
 
 ## BacklogTest
@@ -556,6 +572,57 @@ Test Edilen Senaryolar:
 
  - **test_invalid_story_status_transition_shows_error**:
    Invalid story status transition shows error
+
+---
+
+## StoryDetailTest
+
+L-11 & L-12: StoryDetail Livewire component testi.
+
+Story detay sayfasında Epic atama, Task atama ve Task status yönetimi testleri.
+
+Test Edilen Senaryolar:
+ - **test_story_detail_page_renders**:
+   Story detay sayfasının doğru render edilmesi.
+
+ - **test_story_displays_epic_badge**:
+   Story'ye bağlı Epic badge gösterimi.
+
+ - **test_assign_epic_to_story**:
+   Story'ye epic atama işlemi.
+
+ - **test_remove_epic_from_story**:
+   Story'den epic kaldırma işlemi.
+
+ - **test_epic_dropdown_shows_project_epics**:
+   Epic dropdown'ında proje epic'leri listelenir.
+
+ - **test_assign_member_to_task**:
+   Task'a proje üyesi atama.
+
+ - **test_unassign_member_from_task**:
+   Task'tan üye kaldırma.
+
+ - **test_task_shows_assignee_name**:
+   Atanmış task'ta üye adı gösterimi.
+
+ - **test_change_task_status_to_in_progress**:
+   Task durumunu New'den InProgress'e geçirme.
+
+ - **test_change_task_status_to_done**:
+   Task durumunu InProgress'den Done'a geçirme.
+
+ - **test_unassigned_task_cannot_start**:
+   Atanmamış task başlatılamaz (BR-16).
+
+ - **test_task_status_dropdown_shows_available_transitions**:
+   Her task için sadece geçerli geçişler gösterilir.
+
+ - **test_member_can_change_status_of_task_they_created**:
+   Kendi oluşturduğu task'ın durumunu değiştirebilir (P19 — creator yetkisi).
+
+ - **test_member_cannot_change_status_of_task_created_by_others**:
+   Başkasının oluşturduğu task'ın durumunu değiştiremez — AuthorizationException (P19).
 
 ---
 
@@ -652,6 +719,29 @@ Test Edilen Senaryolar:
 
  - **test_done_story_cannot_transition_to_new**:
    Done story cannot transition to new
+
+---
+
+## AddMemberActionTest
+
+AddMemberAction Unit Testi.
+
+Proje üye ekleme iş kurallarını doğrular:
+- Maksimum 5 üye limiti (BR-11/BR-12.1)
+- Tekil üyelik kontrolü (BR-12)
+- Başarılı üye ekleme
+
+Test Edilen Senaryolar:
+ - **test_cannot_add_member_when_max_limit_reached**:
+   Proje zaten 5 üyeye sahipken yeni üye eklemeye çalışılır.
+   MaxMembersExceededException fırlatılması beklenir.
+
+ - **test_cannot_add_duplicate_member**:
+   Zaten projede olan kullanıcı tekrar eklenmeye çalışılır.
+   DuplicateMemberException fırlatılması beklenir.
+
+ - **test_can_add_member_successfully**:
+   Limitlerin altında ve mevcut olmayan kullanıcı başarıyla eklenir.
 
 ---
 

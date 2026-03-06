@@ -185,6 +185,14 @@ completion_percentage = (done_stories_count / total_stories_count) × 100
 
 **Hata:** `DuplicateMemberException` (422)
 
+### BR-12.1: Maksimum Üye Limiti
+
+> Bir proje en fazla 5 üyeye sahip olabilir.
+
+**Uygulama yeri:** `AddMemberAction.execute()` içinde `memberships()->count()` kontrolü
+
+**Hata:** `MaxMembersExceededException` (422)
+
 ### BR-13: Proje Sahibi Üyelik
 
 > Proje oluşturulduğunda, oluşturan kullanıcı otomatik olarak `owner` rolüyle üye yapılır.
@@ -214,12 +222,17 @@ completion_percentage = (done_stories_count / total_stories_count) × 100
 
 Detay: [03-STATE_MACHINE.md](./03-STATE_MACHINE.md)
 
-### BR-17: Member Kendi Task'ı
+### BR-17: Task Düzenle ve Durum Değiştirme Yetkisi
 
+> Task düzenle ve durum değiştirme yetkisi yalnızca aşağıdaki kullanıcılara aittir:
+> - Task'ı oluşturan kullanıcı (`created_by`)
+> - Modüratör rolündeki kullanıcılar
+> - Owner
+>
+> Tüm proje üyeleri (Member dahil) task oluşturabilir.
 > Member rolündeki kullanıcı:
-> - Sadece kendisine atanmış task'ların durumunu değiştirebilir
+> - Sadece kendi oluşturduğu task'ların durumunu değiştirebilir ve düzenleyebilir
 > - Başka kullanıcılara task atayamaz
-> - Yeni task oluşturamaz
 
 Detay: [05-RBAC_PERMISSIONS.md](./05-RBAC_PERMISSIONS.md)
 
@@ -260,11 +273,12 @@ Detay: [05-RBAC_PERMISSIONS.md](./05-RBAC_PERMISSIONS.md)
 | Scope change burndown | BR-10 | BurndownService | — |
 | Epic tamamlanma | BR-11 | CalculateEpicCompletionAction | — |
 | Tekil üyelik | BR-12 | AddMemberAction | 422 |
+| Maksimum üye limiti | BR-12.1 | AddMemberAction | 422 |
 | Otomatik owner üyelik | BR-13 | ProjectService.create() | — |
 | Owner çıkarılamaz | BR-14 | MembershipPolicy | 403 |
 | Proje silme cascade | BR-15 | ProjectService.delete() | — |
 | Task atanmadan başlamaz | BR-16 | ChangeTaskStatusAction | 422 |
-| Member kendi task'ı | BR-17 | TaskPolicy | 403 |
+| Task düzenleme/durum yetkisi | BR-17 | TaskPolicy | 403 |
 | Issue varsayılan değerler | BR-18 | CreateIssueAction | — |
 | Member issue yetkisi | BR-19 | IssuePolicy | 403 |
 

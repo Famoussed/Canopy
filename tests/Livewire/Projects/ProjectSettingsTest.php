@@ -152,4 +152,29 @@ class ProjectSettingsTest extends TestCase
 
         $this->assertSoftDeleted('projects', ['id' => $this->project->id]);
     }
+
+    public function test_cannot_add_member_when_max_limit_reached(): void
+    {
+        // Owner already counts as 1 member. Add 4 more to reach the limit of 5.
+        for ($i = 0; $i < 4; $i++) {
+            $this->project->memberships()->create([
+                'user_id' => User::factory()->create()->id,
+                'role' => ProjectRole::Member,
+            ]);
+        }
+
+        $sixthUser = User::factory()->create(['email' => 'sixth@test.com']);
+
+        Livewire::actingAs($this->owner)
+            ->test('projects.project-settings', ['project' => $this->project])
+            ->set('newMemberEmail', 'sixth@test.com')
+            ->set('newMemberRole', 'member')
+            ->call('addMember')
+            ->assertHasErrors(['newMemberEmail']);
+
+        $this->assertDatabaseMissing('project_memberships', [
+            'project_id' => $this->project->id,
+            'user_id' => $sixthUser->id,
+        ]);
+    }
 }

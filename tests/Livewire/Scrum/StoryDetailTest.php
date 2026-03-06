@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Livewire\Scrum;
 
 use App\Enums\ProjectRole;
-use App\Enums\StoryStatus;
 use App\Enums\TaskStatus;
 use App\Models\Epic;
 use App\Models\Project;
@@ -34,6 +33,8 @@ use Tests\TestCase;
  * - test_change_task_status_to_done: Task durumunu InProgress'den Done'a geçirme.
  * - test_unassigned_task_cannot_start: Atanmamış task başlatılamaz (BR-16).
  * - test_task_status_dropdown_shows_available_transitions: Her task için sadece geçerli geçişler gösterilir.
+ * - test_member_can_change_status_of_task_they_created: Kendi oluşturduğu task'ın durumunu değiştirebilir.
+ * - test_member_cannot_change_status_of_task_created_by_others: Başkasının oluşturduğu task'ın durumunu değiştiremez.
  */
 class StoryDetailTest extends TestCase
 {
@@ -284,5 +285,55 @@ class StoryDetailTest extends TestCase
         );
 
         $response->assertSee('Devam Ediyor');
+    }
+
+    public function test_member_can_change_status_of_task_they_created(): void
+    {
+        $member = User::factory()->create();
+        $this->project->memberships()->create([
+            'user_id' => $member->id,
+            'role' => ProjectRole::Member,
+        ]);
+
+        $task = Task::factory()->assigned($member)->create([
+            'user_story_id' => $this->story->id,
+            'created_by' => $member->id,
+            'status' => TaskStatus::New,
+        ]);
+
+        Livewire::actingAs($member)
+            ->test('scrum.story-detail', [
+                'project' => $this->project,
+                'story' => $this->story,
+            ])
+            ->call('changeTaskStatus', $task->id, 'in_progress');
+
+        $this->assertEquals(TaskStatus::InProgress, $task->fresh()->status);
+    }
+
+    public function test_member_cannot_change_status_of_task_created_by_others(): void
+    {
+        $member = User::factory()->create();
+        $this->project->memberships()->create([
+            'user_id' => $member->id,
+            'role' => ProjectRole::Member,
+        ]);
+
+        // Task was created by the owner, not the member
+        $task = Task::factory()->assigned($member)->create([
+            'user_story_id' => $this->story->id,
+            'created_by' => $this->user->id,
+            'status' => TaskStatus::New,
+        ]);
+
+        Livewire::actingAs($member)
+            ->test('scrum.story-detail', [
+                'project' => $this->project,
+                'story' => $this->story,
+            ])
+            ->call('changeTaskStatus', $task->id, 'in_progress');
+
+        // Status remains unchanged due to authorization failure
+        $this->assertEquals(TaskStatus::New, $task->fresh()->status);
     }
 }

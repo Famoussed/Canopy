@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Project;
 
+use App\Enums\ProjectRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\AddMemberRequest;
 use App\Http\Resources\MemberResource;
-use App\Enums\ProjectRole;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\MembershipService;
@@ -31,7 +31,13 @@ class MembershipController extends Controller
         $user = User::where('email', $request->validated('email'))->firstOrFail();
         $role = ProjectRole::from($request->validated('role'));
 
-        $membership = $this->service->add($project, $user, $role, $request->user());
+        try {
+            $membership = $this->service->add($project, $user, $role, $request->user());
+        } catch (\App\Exceptions\MaxMembersExceededException $e) {
+            return response()->json(['message' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (\App\Exceptions\DuplicateMemberException $e) {
+            return response()->json(['message' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         return (new MemberResource($membership->load('user')))
             ->response()

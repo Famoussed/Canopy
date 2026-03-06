@@ -84,6 +84,8 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
             $this->project->refresh();
         } catch (\App\Exceptions\DuplicateMemberException) {
             $this->addError('newMemberEmail', 'Bu kullanıcı zaten üye.');
+        } catch (\App\Exceptions\MaxMembersExceededException $e) {
+            $this->addError('newMemberEmail', $e->getMessage());
         }
     }
 

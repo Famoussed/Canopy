@@ -14,6 +14,14 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::redirect('/', '/dashboard');
 
+    Route::post('/logout', function () {
+        auth()->logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        return redirect('/login');
+    })->name('logout');
+
     Route::livewire('/dashboard', 'dashboard')->name('dashboard');
 
     // Project creation

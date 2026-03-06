@@ -163,4 +163,27 @@ class AdvancedRbacTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_max_member_limit_enforced_via_api(): void
+    {
+        // setUp creates 3 members (owner, moderator, member). Add 2 more to reach 5.
+        for ($i = 0; $i < 2; $i++) {
+            $this->project->memberships()->create([
+                'user_id' => User::factory()->create()->id,
+                'role' => ProjectRole::Member,
+            ]);
+        }
+
+        $sixthUser = User::factory()->create();
+
+        $response = $this->actingAs($this->owner)->postJson(
+            "/api/projects/{$this->project->slug}/members",
+            [
+                'email' => $sixthUser->email,
+                'role' => 'member',
+            ]
+        );
+
+        $response->assertStatus(422);
+    }
 }

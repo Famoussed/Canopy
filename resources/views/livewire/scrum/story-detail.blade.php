@@ -5,6 +5,7 @@ use App\Models\Project;
 use App\Models\UserStory;
 use App\Services\TaskService;
 use App\Services\UserStoryService;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -24,12 +25,30 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
 
     public string $editDescription = '';
 
+    public ?string $selectedEpicId = null;
+
     public function mount(Project $project, UserStory $story): void
     {
         $this->project = $project;
         $this->story = $story;
         $this->editTitle = $story->title;
         $this->editDescription = $story->description ?? '';
+        $this->selectedEpicId = $story->epic_id;
+    }
+
+    #[Computed]
+    public function epics(): mixed
+    {
+        return $this->project->epics()->orderBy('title')->get();
+    }
+
+    #[Computed]
+    public function members(): mixed
+    {
+        return $this->project->memberships()
+            ->with('user')
+            ->get()
+            ->pluck('user');
     }
 
     public function saveTitle(): void
@@ -71,6 +90,14 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
     {
         $this->validate(['newTaskTitle' => 'required|string|max:255']);
 
+        try {
+            $this->authorize('create', [\App\Models\Task::class, $this->story->project]);
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
+            session()->flash('error', 'Task oluşturma yetkiniz yok.');
+
+            return;
+        }
+
         app(TaskService::class)->create([
             'title' => $this->newTaskTitle,
         ], $this->story, auth()->user());
@@ -78,6 +105,57 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         $this->newTaskTitle = '';
         $this->showTaskForm = false;
         $this->story->refresh();
+    }
+
+    public function updateEpic(): void
+    {
+        $epicId = $this->selectedEpicId ?: null;
+
+        app(UserStoryService::class)->update($this->story, [
+            'epic_id' => $epicId,
+        ]);
+
+        $this->story->refresh();
+    }
+
+    public function assignTask(string $taskId, string $userId): void
+    {
+        $task = \App\Models\Task::findOrFail($taskId);
+
+        try {
+            $this->authorize('assign', $task);
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
+            session()->flash('error', 'Task atama yetkiniz yok.');
+
+            return;
+        }
+
+        if ($userId === '') {
+            $task->update(['assigned_to' => null]);
+            $this->story->refresh();
+
+            return;
+        }
+
+        $assignee = \App\Models\User::findOrFail($userId);
+        app(TaskService::class)->assign($task, $assignee, auth()->user());
+        $this->story->refresh();
+    }
+
+    public function changeTaskStatus(string $taskId, string $newStatus): void
+    {
+        $task = \App\Models\Task::findOrFail($taskId);
+        $status = TaskStatus::from($newStatus);
+
+        try {
+            $this->authorize('changeStatus', $task);
+            app(TaskService::class)->changeStatus($task, $status, auth()->user());
+            $this->story->refresh();
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
+            session()->flash('error', 'Bu task\'\u0131n durumunu değiştirme yetkiniz yok.');
+        } catch (\Exception) {
+            session()->flash('error', 'Task durumu değiştirilemedi.');
+        }
     }
 
     public function toggleTaskStatus(string $taskId): void
@@ -88,8 +166,11 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             : TaskStatus::Done;
 
         try {
+            $this->authorize('changeStatus', $task);
             app(TaskService::class)->changeStatus($task, $newStatus, auth()->user());
             $this->story->refresh();
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
+            session()->flash('error', 'Bu task\'\u0131n durumunu değiştirme yetkiniz yok.');
         } catch (\Exception) {
             session()->flash('error', 'Task durumu değiştirilemedi.');
         }
@@ -171,7 +252,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
                 @else
                     <div class="divide-y divide-zinc-100 dark:divide-zinc-700">
                         @foreach ($story->tasks as $task)
-                            <div wire:key="task-{{ $task->id }}" class="flex items-center gap-3 py-2">
+                            <div wire:key="task-{{ $task->id }}" class="flex items-center gap-3 py-3">
                                 <flux:checkbox
                                     wire:click="toggleTaskStatus('{{ $task->id }}')"
                                     :checked="$task->status->value === 'done'"
@@ -179,12 +260,31 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
                                 <span class="flex-1 text-sm {{ $task->status->value === 'done' ? 'line-through text-zinc-400' : '' }}">
                                     {{ $task->title }}
                                 </span>
-                                <x-status-badge :status="$task->status" />
-                                @if ($task->assignee)
-                                    <flux:avatar size="xs" :name="$task->assignee->name" />
-                                @else
-                                    <flux:badge size="sm" color="zinc">Atanmadı</flux:badge>
-                                @endif
+
+                                {{-- Task Status --}}
+                                <flux:select
+                                    wire:change="changeTaskStatus('{{ $task->id }}', $event.target.value)"
+                                    size="sm"
+                                    class="w-36"
+                                >
+                                    <flux:select.option :value="$task->status->value" selected>{{ $task->status->label() }}</flux:select.option>
+                                    @foreach ($task->status->allowedTransitions()[$task->status->value] ?? [] as $transitionValue)
+                                        @php $transitionEnum = \App\Enums\TaskStatus::from($transitionValue); @endphp
+                                        <flux:select.option :value="$transitionValue">{{ $transitionEnum->label() }}</flux:select.option>
+                                    @endforeach
+                                </flux:select>
+
+                                {{-- Task Assignee --}}
+                                <flux:select
+                                    wire:change="assignTask('{{ $task->id }}', $event.target.value)"
+                                    size="sm"
+                                    class="w-36"
+                                >
+                                    <flux:select.option value="">Atanmadı</flux:select.option>
+                                    @foreach ($this->members as $member)
+                                        <flux:select.option :value="$member->id" :selected="$task->assigned_to === $member->id">{{ $member->name }}</flux:select.option>
+                                    @endforeach
+                                </flux:select>
                             </div>
                         @endforeach
                     </div>
@@ -219,12 +319,16 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             <flux:card class="space-y-3">
                 <flux:heading>Detaylar</flux:heading>
                 <div class="space-y-2 text-sm">
-                    @if ($story->epic)
-                        <div class="flex items-center justify-between">
-                            <flux:text>Epic</flux:text>
-                            <flux:badge size="sm" :color="$story->epic->color ?? 'zinc'">{{ $story->epic->title }}</flux:badge>
-                        </div>
-                    @endif
+                    {{-- Epic Assignment --}}
+                    <div class="flex items-center justify-between">
+                        <flux:text>Epic</flux:text>
+                        <flux:select wire:model.live="selectedEpicId" wire:change="updateEpic" placeholder="Epic seçin" size="sm" class="w-40">
+                            <flux:select.option value="">Epic yok</flux:select.option>
+                            @foreach ($this->epics as $epic)
+                                <flux:select.option :value="$epic->id">{{ $epic->title }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                    </div>
                     @if ($story->sprint)
                         <div class="flex items-center justify-between">
                             <flux:text>Sprint</flux:text>

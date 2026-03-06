@@ -16,8 +16,9 @@ use Tests\TestCase;
 /**
  * P-05, P-06, P-07: Task RBAC policy testleri.
  *
- * Member kendi task'ını düzenleyebilir, başkasının task'ını düzenleyemez,
- * Moderator tüm task'ları düzenleyebilir senaryolarını test eder.
+ * Task düzenleme ve durum değiştirme yetkisi: task'ı oluşturan üye, Moderatör veya Owner.
+ * Member kendi oluşturduğu task'ı düzenleyebilir ve durumunu değiştirebilir,
+ * başkasının oluşturduğu task'ta bu yetkilere sahip değildir. (P19, P20)
  */
 class TaskPolicyTest extends TestCase
 {
@@ -59,6 +60,7 @@ class TaskPolicyTest extends TestCase
     {
         $task = Task::factory()->assigned($this->member)->create([
             'user_story_id' => $this->story->id,
+            'created_by' => $this->member->id,
             'status' => TaskStatus::InProgress,
         ]);
 
@@ -81,6 +83,7 @@ class TaskPolicyTest extends TestCase
 
         $task = Task::factory()->assigned($otherMember)->create([
             'user_story_id' => $this->story->id,
+            'created_by' => $otherMember->id,
             'status' => TaskStatus::InProgress,
         ]);
 
@@ -107,14 +110,14 @@ class TaskPolicyTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_member_cannot_create_task(): void
+    public function test_member_can_create_task(): void
     {
         $response = $this->actingAs($this->member)->postJson(
             "/api/stories/{$this->story->id}/tasks",
             ['title' => 'New Task']
         );
 
-        $response->assertStatus(403);
+        $response->assertStatus(201);
     }
 
     public function test_moderator_can_create_task(): void
@@ -125,6 +128,18 @@ class TaskPolicyTest extends TestCase
         );
 
         $response->assertStatus(201);
+    }
+
+    public function test_non_member_cannot_create_task(): void
+    {
+        $nonMember = User::factory()->create();
+
+        $response = $this->actingAs($nonMember)->postJson(
+            "/api/stories/{$this->story->id}/tasks",
+            ['title' => 'New Task']
+        );
+
+        $response->assertStatus(403);
     }
 
     public function test_member_cannot_assign_task(): void
@@ -179,5 +194,36 @@ class TaskPolicyTest extends TestCase
         );
 
         $response->assertStatus(204);
+    }
+
+    public function test_member_can_update_own_created_task(): void
+    {
+        $task = Task::factory()->create([
+            'user_story_id' => $this->story->id,
+            'created_by' => $this->member->id,
+        ]);
+
+        $response = $this->actingAs($this->member)->putJson(
+            "/api/tasks/{$task->id}",
+            ['title' => 'Updated By Creator']
+        );
+
+        $response->assertStatus(200);
+        $this->assertEquals('Updated By Creator', $task->fresh()->title);
+    }
+
+    public function test_member_cannot_update_task_created_by_others(): void
+    {
+        $task = Task::factory()->create([
+            'user_story_id' => $this->story->id,
+            'created_by' => $this->moderator->id,
+        ]);
+
+        $response = $this->actingAs($this->member)->putJson(
+            "/api/tasks/{$task->id}",
+            ['title' => 'Should Not Update']
+        );
+
+        $response->assertStatus(403);
     }
 }
