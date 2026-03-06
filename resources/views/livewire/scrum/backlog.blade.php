@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\SprintStatus;
 use App\Models\Project;
 use App\Models\UserStory;
 use App\Services\UserStoryService;
@@ -47,7 +48,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
 
     public function reorder(array $orderedIds): void
     {
-        app(UserStoryService::class)->reorder($orderedIds, auth()->user());
+        app(UserStoryService::class)->reorder($this->project, $orderedIds);
     }
 
     #[Computed]
@@ -69,7 +70,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
     public function sprints(): mixed
     {
         return $this->project->sprints()
-            ->whereIn('status', ['planning', 'active'])
+            ->whereIn('status', [SprintStatus::Planning, SprintStatus::Active])
             ->withCount('userStories')
             ->get();
     }
@@ -143,24 +144,35 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
             @else
                 <div
                     class="space-y-1"
-                    x-data="{}"
-                    x-init="
-                        new Sortable($el, {
-                            handle: '.drag-handle',
-                            animation: 150,
-                            ghostClass: 'opacity-30',
-                            onEnd(evt) {
-                                const ids = Array.from(evt.from.children).map(el => el.dataset.storyId);
-                                $wire.reorder(ids);
-                            }
-                        })
-                    "
+                    x-data="{
+                        draggingId: null,
+                        dragOverId: null,
+                        reorder(droppedOnId) {
+                            if (!this.draggingId || this.draggingId === droppedOnId) return;
+                            const items = [...$el.querySelectorAll('[data-story-id]')];
+                            const ids = items.map(el => el.dataset.storyId);
+                            const fromIdx = ids.indexOf(this.draggingId);
+                            const toIdx = ids.indexOf(droppedOnId);
+                            if (fromIdx === -1 || toIdx === -1) return;
+                            ids.splice(fromIdx, 1);
+                            ids.splice(toIdx, 0, this.draggingId);
+                            $wire.reorder(ids);
+                            this.draggingId = null;
+                            this.dragOverId = null;
+                        }
+                    }"
                 >
                     @foreach ($this->stories as $story)
                         <div
                             wire:key="story-{{ $story->id }}"
                             data-story-id="{{ $story->id }}"
-                            class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:shadow-sm transition-shadow group"
+                            draggable="true"
+                            x-on:dragstart="draggingId = '{{ $story->id }}'; $el.classList.add('opacity-40')"
+                            x-on:dragend="draggingId = null; dragOverId = null; $el.classList.remove('opacity-40')"
+                            x-on:dragover.prevent="dragOverId = '{{ $story->id }}'"
+                            x-on:drop.prevent="reorder('{{ $story->id }}')"
+                            x-bind:class="dragOverId === '{{ $story->id }}' && draggingId !== '{{ $story->id }}' ? 'ring-2 ring-indigo-400' : ''"
+                            class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:shadow-sm transition-shadow group cursor-grab active:cursor-grabbing"
                         >
                             {{-- Drag Handle --}}
                             <span class="drag-handle cursor-grab text-zinc-300 hover:text-zinc-500">

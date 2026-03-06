@@ -11,7 +11,7 @@ class ChangeIssueStatusAction
 {
     public function execute(Issue $issue, IssueStatus $newStatus): Issue
     {
-        $issue->transitionTo($newStatus);
+        $issue->transitionTo($newStatus->value);
 
         return $issue->fresh();
     }

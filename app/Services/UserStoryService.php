@@ -56,11 +56,11 @@ class UserStoryService
     public function changeStatus(UserStory $story, StoryStatus $newStatus, User $user): UserStory
     {
         return DB::transaction(function () use ($story, $newStatus, $user) {
-            $oldStatus = $story->status;
+            $oldStatus = $story->status->value;
 
             $story = $this->changeStatusAction->execute($story, $newStatus);
 
-            StoryStatusChanged::dispatch($story, $oldStatus, $newStatus, $user);
+            StoryStatusChanged::dispatch($story, $oldStatus, $newStatus->value, $user);
 
             return $story;
         });

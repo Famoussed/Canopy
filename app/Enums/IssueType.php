@@ -22,7 +22,7 @@ enum IssueType: string
     public function icon(): string
     {
         return match ($this) {
-            self::Bug => 'bug',
+            self::Bug => 'bug-ant',
             self::Question => 'question-mark-circle',
             self::Enhancement => 'light-bulb',
         };

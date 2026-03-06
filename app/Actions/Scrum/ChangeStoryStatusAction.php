@@ -14,7 +14,7 @@ class ChangeStoryStatusAction
      */
     public function execute(UserStory $story, StoryStatus $newStatus): UserStory
     {
-        $story->transitionTo($newStatus);
+        $story->transitionTo($newStatus->value);
 
         return $story->fresh();
     }

@@ -73,8 +73,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
 
         app(TaskService::class)->create([
             'title' => $this->newTaskTitle,
-            'user_story_id' => $this->story->id,
-        ], auth()->user());
+        ], $this->story, auth()->user());
 
         $this->newTaskTitle = '';
         $this->showTaskForm = false;
@@ -199,13 +198,14 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             <flux:card class="space-y-3">
                 <flux:heading>Durum</flux:heading>
                 <div class="flex gap-2 flex-wrap">
-                    @foreach ($story->status->allowedTransitions() as $transition)
+                    @foreach ($story->availableTransitions() as $transitionValue)
+                        @php $transitionEnum = \App\Enums\StoryStatus::from($transitionValue); @endphp
                         <flux:button
                             variant="outline"
                             size="sm"
-                            wire:click="changeStatus('{{ $transition->value }}')"
+                            wire:click="changeStatus('{{ $transitionValue }}')"
                         >
-                            {{ $transition->label() }}
+                            {{ $transitionEnum->label() }}
                         </flux:button>
                     @endforeach
                 </div>

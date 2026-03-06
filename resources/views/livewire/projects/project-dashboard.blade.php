@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\StoryStatus;
 use App\Models\Project;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -35,7 +36,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
     #[Computed]
     public function doneStories(): int
     {
-        return $this->project->userStories()->byStatus('done')->count();
+        return $this->project->userStories()->byStatus(StoryStatus::Done)->count();
     }
 
     #[Computed]

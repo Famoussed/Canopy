@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\SprintStatus;
 use App\Enums\StoryStatus;
 use App\Enums\TaskStatus;
 use App\Models\Project;
@@ -84,7 +85,7 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
     public function sprints(): mixed
     {
         return $this->project->sprints()
-            ->whereIn('status', ['planning', 'active'])
+            ->whereIn('status', [SprintStatus::Planning, SprintStatus::Active])
             ->get();
     }
 }
@@ -121,22 +122,21 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
             :action-url="'/projects/' . $project->slug . '/sprints'"
         />
     @else
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[60vh]">
+        <div
+            class="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[60vh]"
+            x-data="{ dragging: null }"
+        >
             @foreach ($this->columns as $statusValue => $column)
                 <div
                     class="flex flex-col rounded-lg bg-zinc-50 dark:bg-zinc-900 p-3"
-                    x-data="{}"
-                    x-init="
-                        new Sortable($el.querySelector('.kanban-column-body'), {
-                            group: 'kanban',
-                            animation: 150,
-                            ghostClass: 'opacity-30',
-                            dragClass: 'shadow-xl',
-                            onAdd(evt) {
-                                const storyId = evt.item.dataset.storyId;
-                                $wire.changeStoryStatus(storyId, '{{ $statusValue }}');
-                            }
-                        })
+                    x-on:dragover.prevent="$el.querySelector('.kanban-column-body').classList.add('ring-2', 'ring-indigo-400')"
+                    x-on:dragleave.self="$el.querySelector('.kanban-column-body').classList.remove('ring-2', 'ring-indigo-400')"
+                    x-on:drop.prevent="
+                        $el.querySelector('.kanban-column-body').classList.remove('ring-2', 'ring-indigo-400');
+                        if (dragging) {
+                            $wire.changeStoryStatus(dragging, '{{ $statusValue }}');
+                            dragging = null;
+                        }
                     "
                 >
                     {{-- Column Header --}}
@@ -149,11 +149,13 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
                     </div>
 
                     {{-- Column Body --}}
-                    <div class="kanban-column-body flex-1 space-y-2 min-h-[200px]">
+                    <div class="kanban-column-body flex-1 space-y-2 min-h-[200px] rounded-lg transition-all">
                         @foreach ($column['stories'] as $story)
                             <div
                                 wire:key="board-story-{{ $story->id }}"
-                                data-story-id="{{ $story->id }}"
+                                draggable="true"
+                                x-on:dragstart="dragging = '{{ $story->id }}'; $el.classList.add('opacity-40')"
+                                x-on:dragend="dragging = null; $el.classList.remove('opacity-40')"
                                 class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow {{ $story->epic ? 'border-l-4' : '' }}"
                                 @if ($story->epic) style="border-left-color: {{ $story->epic->color ?? '#6366f1' }}" @endif
                             >

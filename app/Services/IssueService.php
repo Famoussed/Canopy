@@ -47,11 +47,11 @@ class IssueService
     public function changeStatus(Issue $issue, IssueStatus $newStatus, User $user): Issue
     {
         return DB::transaction(function () use ($issue, $newStatus, $user) {
-            $oldStatus = $issue->status;
+            $oldStatus = $issue->status->value;
 
             $issue = $this->changeStatusAction->execute($issue, $newStatus);
 
-            IssueStatusChanged::dispatch($issue, $oldStatus, $newStatus, $user);
+            IssueStatusChanged::dispatch($issue, $oldStatus, $newStatus->value, $user);
 
             return $issue;
         });

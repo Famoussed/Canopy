@@ -24,7 +24,7 @@ class AddMemberAction
             ->exists();
 
         if ($exists) {
-            throw new DuplicateMemberException();
+            throw new DuplicateMemberException($user->id, $project->id);
         }
 
         return $project->memberships()->create([
