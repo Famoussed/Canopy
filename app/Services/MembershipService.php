@@ -13,7 +13,9 @@ use App\Events\Project\MemberRemoved;
 use App\Models\Project;
 use App\Models\ProjectMembership;
 use App\Models\User;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MembershipService
 {
@@ -25,13 +27,17 @@ class MembershipService
 
     public function add(Project $project, User $user, ProjectRole $role, User $addedBy): ProjectMembership
     {
-        return DB::transaction(function () use ($project, $user, $role, $addedBy) {
-            $membership = $this->addAction->execute($project, $user, $role);
-
-            MemberAdded::dispatch($project, $user, $membership, $addedBy);
-
-            return $membership;
+        $membership = DB::transaction(function () use ($project, $user, $role) {
+            return $this->addAction->execute($project, $user, $role);
         });
+
+        try {
+            MemberAdded::dispatch($project, $user, $membership, $addedBy);
+        } catch (BroadcastException $e) {
+            Log::warning('Broadcast failed for MemberAdded', ['error' => $e->getMessage()]);
+        }
+
+        return $membership;
     }
 
     public function remove(Project $project, User $user, User $removedBy): void

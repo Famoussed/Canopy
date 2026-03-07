@@ -28,6 +28,23 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
         }
     }
 
+    /** @return array<string, string> */
+    public function getListeners(): array
+    {
+        return [
+            "echo-private:project.{$this->project->id},.story.status-changed" => 'refreshBoard',
+            "echo-private:project.{$this->project->id},.task.status-changed"  => 'refreshBoard',
+            "echo-private:project.{$this->project->id},.story.created"        => 'refreshBoard',
+            "echo-private:project.{$this->project->id},.sprint.started"       => 'refreshBoard',
+            "echo-private:project.{$this->project->id},.sprint.closed"        => 'refreshBoard',
+        ];
+    }
+
+    public function refreshBoard(): void
+    {
+        unset($this->sprint, $this->columns, $this->sprints);
+    }
+
     public function changeTaskStatus(string $taskId, string $newStatus): void
     {
         $task = \App\Models\Task::findOrFail($taskId);

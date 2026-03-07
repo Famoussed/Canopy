@@ -7,6 +7,7 @@ use App\Services\TaskService;
 use App\Services\UserStoryService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -22,6 +23,13 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
     public bool $editingTitle = false;
 
     public string $editTitle = '';
+
+    #[On('echo-private:project.{project.id},task.status-changed')]
+    #[On('echo-private:project.{project.id},task.assigned')]
+    public function refreshStoryTasks(): void
+    {
+        $this->story->load(['tasks.assignee', 'epic', 'sprint', 'creator', 'storyPoints', 'attachments']);
+    }
 
     public string $editDescription = '';
 

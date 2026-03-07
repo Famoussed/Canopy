@@ -50,6 +50,10 @@ new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class 
 
         <flux:spacer />
 
+        @auth
+            <livewire:notification.notification-bell />
+        @endauth
+
         <flux:navlist variant="outline">
             <flux:navlist.item icon="arrow-right-start-on-rectangle" wire:click="logout">
                 Çıkış Yap

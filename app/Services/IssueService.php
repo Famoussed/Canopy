@@ -12,7 +12,9 @@ use App\Events\Issue\IssueStatusChanged;
 use App\Models\Issue;
 use App\Models\Project;
 use App\Models\User;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class IssueService
 {
@@ -23,13 +25,17 @@ class IssueService
 
     public function create(array $data, Project $project, User $user): Issue
     {
-        return DB::transaction(function () use ($data, $project, $user) {
-            $issue = $this->createAction->execute($data, $project, $user);
-
-            IssueCreated::dispatch($issue, $user);
-
-            return $issue;
+        $issue = DB::transaction(function () use ($data, $project, $user) {
+            return $this->createAction->execute($data, $project, $user);
         });
+
+        try {
+            IssueCreated::dispatch($issue, $user);
+        } catch (BroadcastException $e) {
+            Log::warning('Broadcast failed for IssueCreated', ['error' => $e->getMessage()]);
+        }
+
+        return $issue;
     }
 
     public function update(Issue $issue, array $data): Issue
@@ -46,14 +52,18 @@ class IssueService
 
     public function changeStatus(Issue $issue, IssueStatus $newStatus, User $user): Issue
     {
-        return DB::transaction(function () use ($issue, $newStatus, $user) {
-            $oldStatus = $issue->status->value;
+        $oldStatus = $issue->status->value;
 
-            $issue = $this->changeStatusAction->execute($issue, $newStatus);
-
-            IssueStatusChanged::dispatch($issue, $oldStatus, $newStatus->value, $user);
-
-            return $issue;
+        $issue = DB::transaction(function () use ($issue, $newStatus) {
+            return $this->changeStatusAction->execute($issue, $newStatus);
         });
+
+        try {
+            IssueStatusChanged::dispatch($issue, $oldStatus, $newStatus->value, $user);
+        } catch (BroadcastException $e) {
+            Log::warning('Broadcast failed for IssueStatusChanged', ['error' => $e->getMessage()]);
+        }
+
+        return $issue;
     }
 }

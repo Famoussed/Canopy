@@ -11,7 +11,9 @@ use App\Events\Scrum\TaskStatusChanged;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserStory;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TaskService
 {
@@ -42,15 +44,19 @@ class TaskService
 
     public function changeStatus(Task $task, TaskStatus $newStatus, User $user): Task
     {
-        return DB::transaction(function () use ($task, $newStatus, $user) {
-            $oldStatus = $task->status;
+        $oldStatus = $task->status;
 
-            $task = $this->changeStatusAction->execute($task, $newStatus);
-
-            TaskStatusChanged::dispatch($task, $oldStatus->value, $newStatus->value, $user);
-
-            return $task;
+        $task = DB::transaction(function () use ($task, $newStatus) {
+            return $this->changeStatusAction->execute($task, $newStatus);
         });
+
+        try {
+            TaskStatusChanged::dispatch($task, $oldStatus->value, $newStatus->value, $user);
+        } catch (BroadcastException $e) {
+            Log::warning('Broadcast failed for TaskStatusChanged', ['error' => $e->getMessage()]);
+        }
+
+        return $task;
     }
 
     public function assign(Task $task, User $assignee, User $assignedBy): Task
@@ -58,7 +64,11 @@ class TaskService
         $task->update(['assigned_to' => $assignee->id]);
         $task = $task->fresh();
 
-        TaskAssigned::dispatch($task, $assignee, $assignedBy);
+        try {
+            TaskAssigned::dispatch($task, $assignee, $assignedBy);
+        } catch (BroadcastException $e) {
+            Log::warning('Broadcast failed for TaskAssigned', ['error' => $e->getMessage()]);
+        }
 
         return $task;
     }

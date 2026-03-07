@@ -16,7 +16,9 @@ use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\User;
 use App\Models\UserStory;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UserStoryService
 {
@@ -30,13 +32,17 @@ class UserStoryService
 
     public function create(array $data, Project $project, User $user): UserStory
     {
-        return DB::transaction(function () use ($data, $project, $user) {
-            $story = $this->createAction->execute($data, $project, $user);
-
-            StoryCreated::dispatch($story, $user);
-
-            return $story;
+        $story = DB::transaction(function () use ($data, $project, $user) {
+            return $this->createAction->execute($data, $project, $user);
         });
+
+        try {
+            StoryCreated::dispatch($story, $user);
+        } catch (BroadcastException $e) {
+            Log::warning('Broadcast failed for StoryCreated', ['error' => $e->getMessage()]);
+        }
+
+        return $story;
     }
 
     public function update(UserStory $story, array $data): UserStory
@@ -55,15 +61,19 @@ class UserStoryService
 
     public function changeStatus(UserStory $story, StoryStatus $newStatus, User $user): UserStory
     {
-        return DB::transaction(function () use ($story, $newStatus, $user) {
-            $oldStatus = $story->status->value;
+        $oldStatus = $story->status->value;
 
-            $story = $this->changeStatusAction->execute($story, $newStatus);
-
-            StoryStatusChanged::dispatch($story, $oldStatus, $newStatus->value, $user);
-
-            return $story;
+        $story = DB::transaction(function () use ($story, $newStatus) {
+            return $this->changeStatusAction->execute($story, $newStatus);
         });
+
+        try {
+            StoryStatusChanged::dispatch($story, $oldStatus, $newStatus->value, $user);
+        } catch (BroadcastException $e) {
+            Log::warning('Broadcast failed for StoryStatusChanged', ['error' => $e->getMessage()]);
+        }
+
+        return $story;
     }
 
     public function moveToSprint(UserStory $story, Sprint $sprint, User $user): UserStory

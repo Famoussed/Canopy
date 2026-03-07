@@ -42,6 +42,10 @@
 
         <flux:spacer />
 
+        @auth
+            <livewire:notification.notification-bell />
+        @endauth
+
         <flux:navlist variant="outline">
             <flux:navlist.item icon="arrow-left" href="/dashboard" wire:navigate>
                 Projelere Dön

@@ -7,6 +7,7 @@ use App\Services\UserStoryService;
 use App\Services\SprintService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -22,6 +23,13 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
     public function mount(Project $project): void
     {
         $this->project = $project;
+    }
+
+    #[On('echo-private:project.{project.id},story.created')]
+    #[On('echo-private:project.{project.id},sprint.scope-changed')]
+    public function refreshBacklog(): void
+    {
+        unset($this->stories, $this->sprints);
     }
 
     public function createStory(): void

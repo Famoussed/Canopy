@@ -896,3 +896,212 @@ Test Edilen Senaryolar:
 
 ---
 
+## EventDispatchTest (Broadcasting)
+
+BR-01: Event dispatch doğrulama testleri.
+
+ShouldBroadcast event'lerinin doğru parametrelerle dispatch edildiğini
+ve broadcast kanallarının doğru yapılandırıldığını test eder.
+
+Test Edilen Senaryolar:
+ - **test_story_created_event_is_dispatched**:
+   Story oluşturulduğunda StoryCreated event'i dispatch edilir.
+
+ - **test_story_status_changed_event_is_dispatched**:
+   Story durumu değiştiğinde StoryStatusChanged event'i dispatch edilir.
+
+ - **test_task_status_changed_event_is_dispatched**:
+   Task durumu değiştiğinde TaskStatusChanged event'i dispatch edilir.
+
+ - **test_task_assigned_event_is_dispatched**:
+   Task atandığında TaskAssigned event'i dispatch edilir.
+
+ - **test_sprint_started_event_is_dispatched**:
+   Sprint başlatıldığında SprintStarted event'i dispatch edilir.
+
+ - **test_sprint_closed_event_is_dispatched**:
+   Sprint kapatıldığında SprintClosed event'i dispatch edilir.
+
+ - **test_issue_created_event_is_dispatched**:
+   Issue oluşturulduğunda IssueCreated event'i dispatch edilir.
+
+ - **test_issue_status_changed_event_is_dispatched**:
+   Issue durumu değiştiğinde IssueStatusChanged event'i dispatch edilir.
+
+ - **test_member_added_event_is_dispatched**:
+   Üye eklendiğinde MemberAdded event'i dispatch edilir.
+
+ - **test_notification_sent_event_is_dispatched**:
+   Bildirim gönderildiğinde NotificationSent event'i dispatch edilir.
+
+---
+
+## BroadcastingTest
+
+BR-02: ShouldBroadcast kanal ve payload testleri.
+
+Her event'in doğru kanal tipini, kanal adını ve payload verisini
+broadcast ettiğini doğrular.
+
+Test Edilen Senaryolar:
+ - **test_story_created_broadcasts_on_private_channel**:
+   StoryCreated event'i PrivateChannel üzerinden broadcast edilir.
+
+ - **test_story_status_changed_broadcasts_on_private_channel**:
+   StoryStatusChanged event'i PrivateChannel üzerinden broadcast edilir.
+
+ - **test_task_status_changed_broadcasts_on_private_channel**:
+   TaskStatusChanged event'i PrivateChannel üzerinden broadcast edilir.
+
+ - **test_task_assigned_broadcasts_on_private_channel**:
+   TaskAssigned event'i PrivateChannel üzerinden broadcast edilir.
+
+ - **test_sprint_started_broadcasts_on_private_channel**:
+   SprintStarted event'i PrivateChannel üzerinden broadcast edilir.
+
+ - **test_sprint_closed_broadcasts_on_private_channel**:
+   SprintClosed event'i PrivateChannel üzerinden broadcast edilir.
+
+ - **test_issue_created_broadcasts_on_private_channel**:
+   IssueCreated event'i PrivateChannel üzerinden broadcast edilir.
+
+ - **test_issue_status_changed_broadcasts_on_private_channel**:
+   IssueStatusChanged event'i PrivateChannel üzerinden broadcast edilir.
+
+ - **test_member_added_broadcasts_on_private_channel**:
+   MemberAdded event'i PrivateChannel üzerinden broadcast edilir.
+
+ - **test_notification_sent_broadcasts_on_private_channel**:
+   NotificationSent event'i PrivateChannel üzerinden broadcast edilir.
+
+---
+
+## ListenerWiringTest
+
+BR-03: Event → Listener eşleme testleri.
+
+EventServiceProvider'daki event-listener bağlantılarının doğru
+yapılandırıldığını kontrol eder.
+
+Test Edilen Senaryolar:
+ - **test_story_status_changed_has_notification_listener**:
+   StoryStatusChanged → SendStatusChangeNotification bağlantısı.
+
+ - **test_task_status_changed_has_notification_listener**:
+   TaskStatusChanged → SendStatusChangeNotification bağlantısı.
+
+ - **test_issue_status_changed_has_notification_listener**:
+   IssueStatusChanged → SendStatusChangeNotification bağlantısı.
+
+ - **test_story_created_has_analytics_listener**:
+   StoryCreated listener doğrulaması.
+
+ - **test_task_assigned_has_activity_listener**:
+   TaskAssigned listener doğrulaması.
+
+ - **test_sprint_started_has_listener**:
+   SprintStarted listener doğrulaması.
+
+ - **test_sprint_closed_has_listener**:
+   SprintClosed listener doğrulaması.
+
+---
+
+## NotificationBellTest (Broadcasting)
+
+BR-04: NotificationBell broadcast render testleri.
+
+NotificationBell Livewire bileşeninin broadcast entegrasyonu ile
+doğru render ve state yönetimi testleri.
+
+Test Edilen Senaryolar:
+ - **test_notification_bell_renders**:
+   Bildirim zili bileşeni başarıyla render edilir.
+
+ - **test_notification_bell_shows_unread_count**:
+   Okunmamış bildirim sayısını doğru gösterir.
+
+ - **test_notification_bell_shows_zero_when_no_unread**:
+   Bildirim yokken sıfır gösterir.
+
+ - **test_notification_bell_excludes_read_notifications**:
+   Okunmuş bildirimleri sayıdan hariç tutar.
+
+ - **test_increment_unread_count_method**:
+   incrementUnreadCount metodu sayıyı artırır.
+
+---
+
+## NotificationBellTest (Livewire)
+
+L-07: NotificationBell Livewire component testi.
+
+Bildirim zili render, okunmamış sayıcı, badge görünürlüğü,
+gerçek zamanlı artırım, çoklu kullanıcı izolasyonu ve kenar durum testleri.
+
+Test Edilen Senaryolar:
+ - **test_notification_bell_renders_successfully**:
+   Bildirim zili bileşeni başarıyla render edilir.
+
+ - **test_notification_bell_mounts_with_correct_initial_state**:
+   Oturum açmış kullanıcı için bileşen doğru şekilde mount eder.
+
+ - **test_shows_correct_unread_count**:
+   Okunmamış bildirim sayısını doğru gösterir.
+
+ - **test_shows_zero_when_no_notifications**:
+   Bildirim yokken sıfır gösterir.
+
+ - **test_excludes_read_notifications_from_count**:
+   Okunmuş bildirimleri sayıdan hariç tutar.
+
+ - **test_shows_zero_when_all_notifications_are_read**:
+   Tüm bildirimler okunmuşsa sıfır gösterir.
+
+ - **test_badge_visible_when_unread_notifications_exist**:
+   Okunmamış bildirim varken kırmızı badge görünür.
+
+ - **test_badge_hidden_when_no_unread_notifications**:
+   Okunmamış bildirim yokken badge görünmez.
+
+ - **test_shows_99_plus_when_count_exceeds_99**:
+   99'dan fazla bildirimde '99+' gösterir.
+
+ - **test_shows_exact_99_when_count_is_99**:
+   Tam 99 bildirimde '99' gösterir, '99+' değil.
+
+ - **test_increment_unread_count_increases_by_one**:
+   incrementUnreadCount metodu sayıyı bir artırır.
+
+ - **test_multiple_increments_accumulate_correctly**:
+   Birden fazla artırım doğru çalışır.
+
+ - **test_increment_adds_to_existing_unread_count**:
+   Mevcut okunmamış bildirimlere artırım eklenir.
+
+ - **test_increment_past_99_shows_99_plus**:
+   99'a artırım yapıldığında badge '99+' olarak güncellenir.
+
+ - **test_notifications_are_isolated_per_user**:
+   Farklı kullanıcıların bildirimleri birbirinden izole edilir.
+
+ - **test_other_users_read_status_does_not_affect_current_user**:
+   Başka kullanıcının okuma durumu bu kullanıcıyı etkilemez.
+
+ - **test_user_id_property_returns_authenticated_user_id**:
+   getUserIdProperty doğru kullanıcı ID'sini döner.
+
+ - **test_counts_all_notification_types**:
+   Farklı türdeki bildirimler sayılır.
+
+ - **test_mixed_read_unread_across_types**:
+   Karışık okunmuş ve okunmamış farklı türlerdeki bildirimler doğru sayılır.
+
+ - **test_handles_large_notification_count**:
+   Yüksek sayıda bildirimde bileşen çalışır.
+
+ - **test_single_notification_shows_badge_with_one**:
+   Tek bir bildirimde badge doğru gösterilir.
+
+---
+

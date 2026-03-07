@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Services\IssueService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -54,6 +55,13 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
     public function mount(Project $project): void
     {
         $this->project = $project;
+    }
+
+    #[On('echo-private:project.{project.id},issue.created')]
+    #[On('echo-private:project.{project.id},issue.status-changed')]
+    public function refreshIssues(): void
+    {
+        unset($this->issues, $this->counts);
     }
 
     public function createIssue(): void

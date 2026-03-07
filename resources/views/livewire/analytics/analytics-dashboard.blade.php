@@ -5,6 +5,7 @@ use App\Services\BurndownService;
 use App\Services\VelocityService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -16,6 +17,15 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
     public function mount(Project $project): void
     {
         $this->project = $project;
+    }
+
+    #[On('echo-private:project.{project.id},story.status-changed')]
+    #[On('echo-private:project.{project.id},task.status-changed')]
+    #[On('echo-private:project.{project.id},sprint.started')]
+    #[On('echo-private:project.{project.id},sprint.closed')]
+    public function refreshAnalytics(): void
+    {
+        unset($this->activeSprint, $this->velocityData, $this->burndownData);
     }
 
     #[Computed]
