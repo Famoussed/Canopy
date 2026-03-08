@@ -7,7 +7,6 @@ use App\Services\TaskService;
 use App\Services\UserStoryService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -24,8 +23,18 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
 
     public string $editTitle = '';
 
-    #[On('echo-private:project.{project.id},task.status-changed')]
-    #[On('echo-private:project.{project.id},task.assigned')]
+    /** @var array<string, string> */
+    public array $estimationPoints = [];
+
+    /** @return array<string, string> */
+    public function getListeners(): array
+    {
+        return [
+            "echo-private:project.{$this->project->id},.task.status-changed" => 'refreshStoryTasks',
+            "echo-private:project.{$this->project->id},.task.assigned"       => 'refreshStoryTasks',
+        ];
+    }
+
     public function refreshStoryTasks(): void
     {
         $this->story->load(['tasks.assignee', 'epic', 'sprint', 'creator', 'storyPoints', 'attachments']);
@@ -42,6 +51,28 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         $this->editTitle = $story->title;
         $this->editDescription = $story->description ?? '';
         $this->selectedEpicId = $story->epic_id;
+
+        // Mevcut puanları forma yükle
+        foreach ($story->storyPoints as $point) {
+            $this->estimationPoints[$point->role_name] = (string) (int) $point->points == $point->points
+                ? (string) (int) $point->points
+                : (string) $point->points;
+        }
+    }
+
+    public function saveEstimation(): void
+    {
+        $this->authorize('estimate', $this->story);
+
+        $points = collect($this->estimationPoints)
+            ->filter(fn ($value) => $value !== '' && $value !== null && (float) $value > 0)
+            ->map(fn ($value, $role) => ['role_name' => $role, 'points' => (float) $value])
+            ->values()
+            ->toArray();
+
+        app(UserStoryService::class)->estimate($this->story, $points);
+        $this->story->refresh();
+        $this->story->load('storyPoints');
     }
 
     #[Computed]
@@ -366,19 +397,43 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             </flux:card>
 
             {{-- Story Points --}}
-            @if ($story->storyPoints->count())
-                <flux:card class="space-y-3">
-                    <flux:heading>Story Puanları</flux:heading>
-                    <div class="space-y-1">
-                        @foreach ($story->storyPoints as $point)
+            <flux:card class="space-y-3">
+                <flux:heading>Story Puanları</flux:heading>
+
+                @can('estimate', $story)
+                    <form wire:submit="saveEstimation" class="space-y-2">
+                        @foreach ($project->getEstimationRoles() as $role)
                             <div class="flex items-center justify-between text-sm">
-                                <flux:text>{{ $point->role_name }}</flux:text>
-                                <flux:badge size="sm" color="zinc">{{ $point->points }}</flux:badge>
+                                <flux:text>{{ $role }}</flux:text>
+                                <flux:input
+                                    type="number"
+                                    wire:model="estimationPoints.{{ $role }}"
+                                    size="sm"
+                                    class="w-20"
+                                    min="0"
+                                    max="999"
+                                    step="0.5"
+                                    placeholder="0"
+                                />
                             </div>
                         @endforeach
-                    </div>
-                </flux:card>
-            @endif
+                        <flux:button type="submit" variant="primary" size="sm" class="w-full">Puanla</flux:button>
+                    </form>
+                @else
+                    @if ($story->storyPoints->count())
+                        <div class="space-y-1">
+                            @foreach ($story->storyPoints as $point)
+                                <div class="flex items-center justify-between text-sm">
+                                    <flux:text>{{ $point->role_name }}</flux:text>
+                                    <flux:badge size="sm" color="zinc">{{ $point->points }}</flux:badge>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <flux:text class="text-zinc-400 text-sm">Henüz puanlanmamış.</flux:text>
+                    @endif
+                @endcan
+            </flux:card>
 
             {{-- Attachments --}}
             <flux:card class="space-y-3">

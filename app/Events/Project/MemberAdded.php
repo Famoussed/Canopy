@@ -29,6 +29,7 @@ class MemberAdded implements ShouldBroadcast
     {
         return [
             new PrivateChannel("user.{$this->member->id}"),
+            new PrivateChannel("project.{$this->project->id}"),
         ];
     }
 

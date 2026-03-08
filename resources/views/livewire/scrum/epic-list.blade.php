@@ -32,6 +32,20 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
         $this->project = $project;
     }
 
+    /** @return array<string, string> */
+    public function getListeners(): array
+    {
+        return [
+            "echo-private:project.{$this->project->id},.story.created"        => 'refreshEpics',
+            "echo-private:project.{$this->project->id},.story.status-changed" => 'refreshEpics',
+        ];
+    }
+
+    public function refreshEpics(): void
+    {
+        unset($this->epics);
+    }
+
     public function createEpic(): void
     {
         $this->validate([

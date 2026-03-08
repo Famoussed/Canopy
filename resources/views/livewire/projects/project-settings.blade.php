@@ -31,6 +31,19 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         $this->projectDescription = $project->description ?? '';
     }
 
+    /** @return array<string, string> */
+    public function getListeners(): array
+    {
+        return [
+            "echo-private:project.{$this->project->id},.member.added" => 'refreshMembers',
+        ];
+    }
+
+    public function refreshMembers(): void
+    {
+        $this->project->refresh();
+    }
+
     public function saveProject(): void
     {
         $this->validate([

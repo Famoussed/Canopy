@@ -122,7 +122,7 @@ new class extends Component {
             x-transition:leave="transition ease-in duration-100"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
-            class="absolute right-0 bottom-full mb-2 w-80 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800 z-50 overflow-hidden"
+            class="absolute right-0 top-full mt-2 w-80 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800 z-50 overflow-hidden"
         >
             {{-- Header --}}
             <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-700">

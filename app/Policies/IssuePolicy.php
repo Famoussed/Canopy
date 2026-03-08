@@ -49,6 +49,24 @@ class IssuePolicy
 
     public function delete(User $user, Issue $issue): bool
     {
+        $role = $this->getMemberRole($user, $issue->project);
+
+        if ($role === null) {
+            return false;
+        }
+
+        if ($role->isAtLeast(ProjectRole::Moderator)) {
+            return true;
+        }
+
+        return $issue->created_by === $user->id;
+    }
+
+    /**
+     * Issue atama — sadece Owner/Moderator.
+     */
+    public function assign(User $user, Issue $issue): bool
+    {
         return $this->isAtLeast($user, $issue->project, ProjectRole::Moderator);
     }
 

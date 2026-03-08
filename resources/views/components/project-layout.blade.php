@@ -42,10 +42,6 @@
 
         <flux:spacer />
 
-        @auth
-            <livewire:notification.notification-bell />
-        @endauth
-
         <flux:navlist variant="outline">
             <flux:navlist.item icon="arrow-left" href="/dashboard" wire:navigate>
                 Projelere Dön
@@ -66,6 +62,12 @@
     </flux:header>
 
     <flux:main>
+        @auth
+            <div class="flex items-center justify-end mb-4" data-notification-header>
+                <livewire:notification.notification-bell />
+            </div>
+        @endauth
+
         {{ $slot }}
     </flux:main>
 </div>

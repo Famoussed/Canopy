@@ -14,7 +14,7 @@ class SnapshotDailyBurndownAction
     public function execute(Sprint $sprint): void
     {
         // Sprint aktif değilse snapshot alma
-        if (! $sprint->status->value === 'active') {
+        if ($sprint->status->value !== 'active') {
             return;
         }
 
@@ -23,7 +23,7 @@ class SnapshotDailyBurndownAction
         $data = $burndownAction->execute($sprint);
 
         cache()->put(
-            "burndown.{$sprint->id}." . now()->toDateString(),
+            "burndown.{$sprint->id}.".now()->toDateString(),
             $data,
             now()->addDays(90)
         );

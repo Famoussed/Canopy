@@ -7,7 +7,6 @@ use App\Services\UserStoryService;
 use App\Services\SprintService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -25,8 +24,15 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
         $this->project = $project;
     }
 
-    #[On('echo-private:project.{project.id},story.created')]
-    #[On('echo-private:project.{project.id},sprint.scope-changed')]
+    /** @return array<string, string> */
+    public function getListeners(): array
+    {
+        return [
+            "echo-private:project.{$this->project->id},.story.created"        => 'refreshBacklog',
+            "echo-private:project.{$this->project->id},.sprint.scope-changed" => 'refreshBacklog',
+        ];
+    }
+
     public function refreshBacklog(): void
     {
         unset($this->stories, $this->sprints);

@@ -381,6 +381,6 @@ class BroadcastingTest extends TestCase
         $issue = Issue::factory()->create();
         $user = User::factory()->create();
 
-        return new IssueStatusChanged($issue, 'open', 'in_progress', $user);
+        return new IssueStatusChanged($issue, 'new', 'in_progress', $user);
     }
 }

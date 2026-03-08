@@ -15,6 +15,24 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
         $this->project = $project;
     }
 
+    /** @return array<string, string> */
+    public function getListeners(): array
+    {
+        return [
+            "echo-private:project.{$this->project->id},.story.status-changed" => 'refreshDashboard',
+            "echo-private:project.{$this->project->id},.task.status-changed"  => 'refreshDashboard',
+            "echo-private:project.{$this->project->id},.sprint.started"       => 'refreshDashboard',
+            "echo-private:project.{$this->project->id},.sprint.closed"        => 'refreshDashboard',
+            "echo-private:project.{$this->project->id},.issue.created"        => 'refreshDashboard',
+            "echo-private:project.{$this->project->id},.issue.status-changed" => 'refreshDashboard',
+        ];
+    }
+
+    public function refreshDashboard(): void
+    {
+        unset($this->activeSprint, $this->backlogCount, $this->totalStories, $this->doneStories, $this->openIssues, $this->recentStories);
+    }
+
     #[Computed]
     public function activeSprint(): mixed
     {

@@ -253,7 +253,13 @@ Detay: [05-RBAC_PERMISSIONS.md](./05-RBAC_PERMISSIONS.md)
 > Member rolündeki kullanıcı:
 > - Issue oluşturabilir (herkes)
 > - Sadece kendi oluşturduğu issue'ları düzenleyebilir
-> - Başkalarının issue'larını düzenleyemez
+> - Sadece kendi oluşturduğu issue'ları silebilir
+> - Başkalarının issue'larını düzenleyemez veya silemez
+> - Issue atayamaz (sadece Owner/Moderator atayabilir)
+>
+> Owner/Moderator:
+> - Tüm issue'ları düzenleyebilir ve silebilir
+> - Issue atayabilir
 
 ---
 

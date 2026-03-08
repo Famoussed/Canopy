@@ -9,7 +9,6 @@ use App\Models\Project;
 use App\Services\IssueService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -39,6 +38,8 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
 
     public string $severity = 'minor';
 
+    public string $assignedTo = '';
+
     // Edit form
     public ?string $editingIssueId = null;
 
@@ -57,8 +58,15 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
         $this->project = $project;
     }
 
-    #[On('echo-private:project.{project.id},issue.created')]
-    #[On('echo-private:project.{project.id},issue.status-changed')]
+    /** @return array<string, string> */
+    public function getListeners(): array
+    {
+        return [
+            "echo-private:project.{$this->project->id},.issue.created"        => 'refreshIssues',
+            "echo-private:project.{$this->project->id},.issue.status-changed" => 'refreshIssues',
+        ];
+    }
+
     public function refreshIssues(): void
     {
         unset($this->issues, $this->counts);
@@ -80,9 +88,10 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
             'type' => $this->type,
             'priority' => $this->priority,
             'severity' => $this->severity,
+            'assigned_to' => $this->assignedTo ?: null,
         ], $this->project, auth()->user());
 
-        $this->reset(['title', 'description', 'type', 'priority', 'severity', 'showCreateForm']);
+        $this->reset(['title', 'description', 'type', 'priority', 'severity', 'showCreateForm', 'assignedTo']);
         $this->type = 'bug';
         $this->priority = 'normal';
         $this->severity = 'minor';
@@ -135,7 +144,20 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
     public function deleteIssue(string $issueId): void
     {
         $issue = Issue::findOrFail($issueId);
+        $this->authorize('delete', $issue);
         app(IssueService::class)->delete($issue);
+    }
+
+    public function assignIssue(string $issueId, string $userId): void
+    {
+        $issue = Issue::findOrFail($issueId);
+        $this->authorize('assign', $issue);
+
+        $issue->update([
+            'assigned_to' => $userId ?: null,
+        ]);
+
+        unset($this->issues);
     }
 
     #[Computed]
@@ -265,6 +287,7 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
                 <flux:table.column>Öncelik</flux:table.column>
                 <flux:table.column>Ciddiyet</flux:table.column>
                 <flux:table.column>Atanan</flux:table.column>
+                <flux:table.column>Oluşturan</flux:table.column>
                 <flux:table.column></flux:table.column>
             </flux:table.columns>
             <flux:table.rows>
@@ -290,6 +313,13 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
                         <flux:table.cell>
                             @if ($issue->assignee)
                                 <flux:avatar size="xs" :name="$issue->assignee->name" />
+                            @else
+                                <flux:text class="text-xs text-zinc-400">—</flux:text>
+                            @endif
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            @if ($issue->creator)
+                                <flux:text class="text-xs">{{ $issue->creator->name }}</flux:text>
                             @else
                                 <flux:text class="text-xs text-zinc-400">—</flux:text>
                             @endif
