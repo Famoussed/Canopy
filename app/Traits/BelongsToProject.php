@@ -19,12 +19,4 @@ trait BelongsToProject
     {
         return $this->belongsTo(Project::class);
     }
-
-    /**
-     * Scope: Belirli bir projeye ait kayıtları filtrele.
-     */
-    public function scopeForProject($query, string $projectId)
-    {
-        return $query->where('project_id', $projectId);
-    }
 }

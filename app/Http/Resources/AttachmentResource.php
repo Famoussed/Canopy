@@ -19,7 +19,7 @@ class AttachmentResource extends JsonResource
             'filename' => $this->filename,
             'mime_type' => $this->mime_type,
             'size' => $this->size,
-            'url' => $this->path ? \Illuminate\Support\Facades\Storage::disk('s3')->url($this->path) : null,
+            'url' => $this->path ? \Illuminate\Support\Facades\Storage::disk('s3')->temporaryUrl($this->path, now()->addHours(24)) : null,
             'uploaded_by' => new UserResource($this->whenLoaded('uploader')),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
