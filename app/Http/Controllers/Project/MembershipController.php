@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class MembershipController extends Controller
 {
-    public function __construct(private MembershipService $service) {}
+    public function __construct(private readonly MembershipService $service) {}
 
     public function index(Project $project): AnonymousResourceCollection
     {

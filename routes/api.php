@@ -3,18 +3,18 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Analytics\AnalyticsController;
+use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\File\AttachmentController;
 use App\Http\Controllers\Issue\IssueController;
+use App\Http\Controllers\Notification\NotificationController;
 use App\Http\Controllers\Project\MembershipController;
 use App\Http\Controllers\Project\ProjectController;
 use App\Http\Controllers\Scrum\EpicController;
 use App\Http\Controllers\Scrum\SprintController;
 use App\Http\Controllers\Scrum\TaskController;
 use App\Http\Controllers\Scrum\UserStoryController;
-use App\Http\Resources\NotificationResource;
-use App\Http\Resources\UserResource;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,15 +27,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', LoginController::class)->name('auth.login');
 
     Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/logout', function (Request $request) {
-            $request->user()->tokens()->delete();
-
-            return response()->json(null, 204);
-        })->name('auth.logout');
-
-        Route::get('/me', function (Request $request) {
-            return new UserResource($request->user());
-        })->name('auth.me');
+        Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
+        Route::get('/me', [AuthController::class, 'me'])->name('auth.me');
     });
 });
 
@@ -112,35 +105,8 @@ Route::middleware('auth:sanctum')->group(function () {
     | Attachments
     |--------------------------------------------------------------------------
     */
-    Route::post('attachments', function (Request $request) {
-        $request->validate([
-            'attachable_type' => ['required', 'string', 'in:user_story,task,issue'],
-            'attachable_id' => ['required', 'string'],
-            'file' => ['required', 'file', 'max:10240'], // 10MB
-        ]);
-
-        $modelMap = [
-            'user_story' => \App\Models\UserStory::class,
-            'task' => \App\Models\Task::class,
-            'issue' => \App\Models\Issue::class,
-        ];
-
-        $model = $modelMap[$request->input('attachable_type')]::findOrFail($request->input('attachable_id'));
-
-        $attachment = app(\App\Services\AttachmentService::class)->upload(
-            $request->file('file'),
-            $model,
-            $request->user()
-        );
-
-        return new \App\Http\Resources\AttachmentResource($attachment);
-    })->name('attachments.store');
-
-    Route::delete('attachments/{attachment}', function (\App\Models\Attachment $attachment, Request $request) {
-        app(\App\Services\AttachmentService::class)->delete($attachment);
-
-        return response()->json(null, 204);
-    })->name('attachments.destroy');
+    Route::post('attachments', [AttachmentController::class, 'store'])->name('attachments.store');
+    Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
 
     /*
     |--------------------------------------------------------------------------
@@ -148,29 +114,8 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('notifications')->group(function () {
-        Route::get('/', function (Request $request) {
-            $notifications = $request->user()
-                ->notifications()
-                ->unread()
-                ->latest()
-                ->paginate(20);
-
-            return NotificationResource::collection($notifications)
-                ->additional(['meta' => ['unread_count' => $request->user()->notifications()->unread()->count()]]);
-        })->name('notifications.index');
-
-        Route::post('/mark-read', function (Request $request) {
-            $request->validate(['id' => ['required', 'string']]);
-
-            app(\App\Services\NotificationService::class)->markAsRead($request->input('id'), $request->user());
-
-            return response()->json(null, 204);
-        })->name('notifications.mark-read');
-
-        Route::post('/mark-all-read', function (Request $request) {
-            app(\App\Services\NotificationService::class)->markAllAsRead($request->user());
-
-            return response()->json(null, 204);
-        })->name('notifications.mark-all-read');
+        Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/mark-read', [NotificationController::class, 'markRead'])->name('notifications.mark-read');
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
     });
 });

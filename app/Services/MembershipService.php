@@ -20,9 +20,9 @@ use Illuminate\Support\Facades\Log;
 class MembershipService
 {
     public function __construct(
-        private AddMemberAction $addAction,
-        private RemoveMemberAction $removeAction,
-        private TransferOwnershipAction $transferAction,
+        private readonly AddMemberAction $addAction,
+        private readonly RemoveMemberAction $removeAction,
+        private readonly TransferOwnershipAction $transferAction,
     ) {}
 
     public function add(Project $project, User $user, ProjectRole $role, User $addedBy): ProjectMembership

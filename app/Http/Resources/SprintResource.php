@@ -21,6 +21,7 @@ class SprintResource extends JsonResource
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
             'stories' => UserStoryResource::collection($this->whenLoaded('userStories')),
+            'stories_count' => $this->whenCounted('userStories', $this->user_stories_count),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

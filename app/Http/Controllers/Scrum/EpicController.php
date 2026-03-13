@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Scrum;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Scrum\CreateEpicRequest;
+use App\Http\Requests\Scrum\UpdateEpicRequest;
 use App\Http\Resources\EpicResource;
 use App\Models\Epic;
 use App\Models\Project;
@@ -16,11 +17,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EpicController extends Controller
 {
-    public function __construct(private EpicService $service) {}
+    public function __construct(private readonly EpicService $service) {}
 
     public function index(Project $project): AnonymousResourceCollection
     {
-        $epics = $project->epics()->get();
+        $epics = $project->epics()->withCount('userStories')->get();
 
         return EpicResource::collection($epics);
     }
@@ -39,11 +40,9 @@ class EpicController extends Controller
         return new EpicResource($epic->load('userStories'));
     }
 
-    public function update(Project $project, Epic $epic): EpicResource
+    public function update(UpdateEpicRequest $request, Project $project, Epic $epic): EpicResource
     {
-        $this->authorize('update', $epic);
-
-        $epic = $this->service->update($epic, request()->validated());
+        $epic = $this->service->update($epic, $request->validated());
 
         return new EpicResource($epic);
     }

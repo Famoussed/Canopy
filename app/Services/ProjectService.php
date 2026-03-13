@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\DB;
 class ProjectService
 {
     public function __construct(
-        private CreateProjectAction $createAction,
-        private AddMemberAction $addMemberAction,
+        private readonly CreateProjectAction $createAction,
+        private readonly AddMemberAction $addMemberAction,
     ) {}
 
     public function create(array $data, User $user): Project

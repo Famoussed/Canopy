@@ -15,7 +15,14 @@ class ProjectResource extends JsonResource
     public function toArray(Request $request): array
     {
         $user = $request->user();
-        $membership = $user?->projectMemberships()->where('project_id', $this->id)->first();
+
+        // Eager-loaded memberships kullanarak N+1 sorgusu önlenir
+        $membership = null;
+        if ($user && $this->relationLoaded('memberships')) {
+            $membership = $this->memberships->firstWhere('user_id', $user->id);
+        } elseif ($user) {
+            $membership = $user->projectMemberships()->where('project_id', $this->id)->first();
+        }
 
         return [
             'id' => $this->id,

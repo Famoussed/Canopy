@@ -12,7 +12,7 @@ use App\Models\User;
 class EpicService
 {
     public function __construct(
-        private CreateEpicAction $createAction,
+        private readonly CreateEpicAction $createAction,
     ) {}
 
     public function create(array $data, Project $project, User $user): Epic

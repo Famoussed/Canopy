@@ -11,8 +11,8 @@ use App\Models\User;
 class NotificationService
 {
     public function __construct(
-        private SendNotificationAction $sendAction,
-        private MarkAsReadAction $markAsReadAction,
+        private readonly SendNotificationAction $sendAction,
+        private readonly MarkAsReadAction $markAsReadAction,
     ) {}
 
     public function send(User $user, string $type, array $data): void

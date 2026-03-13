@@ -9,6 +9,8 @@ use App\Http\Requests\Scrum\ChangeStatusRequest;
 use App\Http\Requests\Scrum\CreateUserStoryRequest;
 use App\Http\Requests\Scrum\EstimateStoryRequest;
 use App\Http\Requests\Scrum\MoveToSprintRequest;
+use App\Http\Requests\Scrum\ReorderBacklogRequest;
+use App\Http\Requests\Scrum\UpdateUserStoryRequest;
 use App\Http\Resources\UserStoryResource;
 use App\Enums\StoryStatus;
 use App\Models\Project;
@@ -22,7 +24,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class UserStoryController extends Controller
 {
-    public function __construct(private UserStoryService $service) {}
+    public function __construct(private readonly UserStoryService $service) {}
 
     public function index(Request $request, Project $project): AnonymousResourceCollection
     {
@@ -64,15 +66,9 @@ class UserStoryController extends Controller
         return new UserStoryResource($story->load(['tasks', 'storyPoints', 'epic', 'creator', 'attachments']));
     }
 
-    public function update(Project $project, UserStory $story): UserStoryResource
+    public function update(UpdateUserStoryRequest $request, Project $project, UserStory $story): UserStoryResource
     {
-        $this->authorize('update', $story);
-
-        $story = $this->service->update($story, request()->validate([
-            'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:10000'],
-            'epic_id' => ['nullable', 'string', 'exists:epics,id'],
-        ]));
+        $story = $this->service->update($story, $request->validated());
 
         return new UserStoryResource($story);
     }
@@ -111,14 +107,9 @@ class UserStoryController extends Controller
         return new UserStoryResource($story);
     }
 
-    public function reorder(Request $request, Project $project): JsonResponse
+    public function reorder(ReorderBacklogRequest $request, Project $project): JsonResponse
     {
-        $request->validate([
-            'ordered_ids' => ['required', 'array'],
-            'ordered_ids.*' => ['string', 'exists:user_stories,id'],
-        ]);
-
-        $this->service->reorder($project, $request->input('ordered_ids'));
+        $this->service->reorder($project, $request->validated('ordered_ids'));
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }

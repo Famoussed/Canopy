@@ -17,11 +17,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ProjectController extends Controller
 {
-    public function __construct(private ProjectService $service) {}
+    public function __construct(private readonly ProjectService $service) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
         $projects = Project::forUser($request->user()->id)
+            ->with(['owner', 'memberships'])
+            ->withCount('members')
             ->latest()
             ->paginate($request->integer('per_page', 20));
 
@@ -39,7 +41,7 @@ class ProjectController extends Controller
 
     public function show(Project $project): ProjectResource
     {
-        return new ProjectResource($project->load('owner'));
+        return new ProjectResource($project->load(['owner', 'memberships'])->loadCount('members'));
     }
 
     public function update(UpdateProjectRequest $request, Project $project): ProjectResource

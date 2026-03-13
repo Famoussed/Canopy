@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Scrum;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Scrum\CreateSprintRequest;
+use App\Http\Requests\Scrum\UpdateSprintRequest;
 use App\Http\Resources\SprintResource;
 use App\Models\Project;
 use App\Models\Sprint;
@@ -16,11 +17,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SprintController extends Controller
 {
-    public function __construct(private SprintService $service) {}
+    public function __construct(private readonly SprintService $service) {}
 
     public function index(Project $project): AnonymousResourceCollection
     {
-        return SprintResource::collection($project->sprints()->latest()->get());
+        return SprintResource::collection(
+            $project->sprints()->withCount('userStories')->latest()->get()
+        );
     }
 
     public function store(CreateSprintRequest $request, Project $project): JsonResponse
@@ -37,16 +40,9 @@ class SprintController extends Controller
         return new SprintResource($sprint->load('userStories'));
     }
 
-    public function update(Project $project, Sprint $sprint): SprintResource
+    public function update(UpdateSprintRequest $request, Project $project, Sprint $sprint): SprintResource
     {
-        $this->authorize('update', $sprint);
-
-        $data = request()->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'end_date' => ['sometimes', 'date', 'after:start_date'],
-        ]);
-
-        $sprint = $this->service->update($sprint, $data);
+        $sprint = $this->service->update($sprint, $request->validated());
 
         return new SprintResource($sprint);
     }

@@ -10,7 +10,7 @@ use App\Models\Sprint;
 class BurndownService
 {
     public function __construct(
-        private CalculateBurndownAction $calculateAction,
+        private readonly CalculateBurndownAction $calculateAction,
     ) {}
 
     public function getBurndownData(Sprint $sprint): array
