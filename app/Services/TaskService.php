@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Log;
 class TaskService
 {
     public function __construct(
-        private ChangeTaskStatusAction $changeStatusAction,
+        private readonly ChangeTaskStatusAction $changeStatusAction,
     ) {}
 
     public function create(array $data, UserStory $story, User $creator): Task

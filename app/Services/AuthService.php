@@ -12,8 +12,8 @@ use Illuminate\Auth\AuthenticationException;
 class AuthService
 {
     public function __construct(
-        private CreateUserAction $createUserAction,
-        private AuthenticateUserAction $authenticateAction,
+        private readonly CreateUserAction $createUserAction,
+        private readonly AuthenticateUserAction $authenticateAction,
     ) {}
 
     public function register(array $data): User

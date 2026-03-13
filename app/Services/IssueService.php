@@ -19,8 +19,8 @@ use Illuminate\Support\Facades\Log;
 class IssueService
 {
     public function __construct(
-        private CreateIssueAction $createAction,
-        private ChangeIssueStatusAction $changeStatusAction,
+        private readonly CreateIssueAction $createAction,
+        private readonly ChangeIssueStatusAction $changeStatusAction,
     ) {}
 
     public function create(array $data, Project $project, User $user): Issue

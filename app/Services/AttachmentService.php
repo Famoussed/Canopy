@@ -14,8 +14,8 @@ use Illuminate\Http\UploadedFile;
 class AttachmentService
 {
     public function __construct(
-        private UploadFileAction $uploadAction,
-        private DeleteFileAction $deleteAction,
+        private readonly UploadFileAction $uploadAction,
+        private readonly DeleteFileAction $deleteAction,
     ) {}
 
     public function upload(UploadedFile $file, Model $attachable, User $uploader): Attachment

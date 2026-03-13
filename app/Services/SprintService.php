@@ -18,8 +18,8 @@ use Illuminate\Support\Facades\Log;
 class SprintService
 {
     public function __construct(
-        private StartSprintAction $startAction,
-        private CloseSprintAction $closeAction,
+        private readonly StartSprintAction $startAction,
+        private readonly CloseSprintAction $closeAction,
     ) {}
 
     public function create(array $data, Project $project): Sprint

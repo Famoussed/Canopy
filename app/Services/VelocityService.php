@@ -10,7 +10,7 @@ use App\Models\Project;
 class VelocityService
 {
     public function __construct(
-        private CalculateVelocityAction $calculateAction,
+        private readonly CalculateVelocityAction $calculateAction,
     ) {}
 
     public function getVelocityData(Project $project, int $sprintCount = 5): array

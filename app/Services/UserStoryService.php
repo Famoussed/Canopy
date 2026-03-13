@@ -23,11 +23,11 @@ use Illuminate\Support\Facades\Log;
 class UserStoryService
 {
     public function __construct(
-        private CreateUserStoryAction $createAction,
-        private ChangeStoryStatusAction $changeStatusAction,
-        private MoveStoryToSprintAction $moveToSprintAction,
-        private CalculateStoryPointsAction $calculatePointsAction,
-        private ReorderBacklogAction $reorderAction,
+        private readonly CreateUserStoryAction $createAction,
+        private readonly ChangeStoryStatusAction $changeStatusAction,
+        private readonly MoveStoryToSprintAction $moveToSprintAction,
+        private readonly CalculateStoryPointsAction $calculatePointsAction,
+        private readonly ReorderBacklogAction $reorderAction,
     ) {}
 
     public function create(array $data, Project $project, User $user): UserStory
