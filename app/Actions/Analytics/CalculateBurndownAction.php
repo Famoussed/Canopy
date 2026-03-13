@@ -9,6 +9,7 @@ use App\Enums\StoryStatus;
 use App\Models\Sprint;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Support\Facades\DB;
 
 class CalculateBurndownAction
 {
@@ -50,6 +51,9 @@ class CalculateBurndownAction
                 ->sum('total_points');
 
             $actualLine[] = round($totalPoints - (float) $completedPoints, 1);
+        }
+
+        $scopeChanges = $sprint->scopeChanges()
             ->with('userStory')
             ->get()
             ->map(fn ($change) => [
