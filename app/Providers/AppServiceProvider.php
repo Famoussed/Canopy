@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Events\Project\MemberAdded;
@@ -13,6 +15,7 @@ use App\Listeners\SendMemberAddedNotification;
 use App\Listeners\SendStatusChangeNotification;
 use App\Listeners\SendTaskAssignedNotification;
 use App\Listeners\UpdateBurndownSnapshot;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -31,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Performance & safety guards (disabled in production)
+        Model::preventLazyLoading(! app()->isProduction());
+        Model::preventSilentlyDiscardingAttributes(! app()->isProduction());
+
         Event::listen(StoryStatusChanged::class, RecalculateEpicCompletion::class);
         Event::listen(StoryStatusChanged::class, SendStatusChangeNotification::class);
         Event::listen(StoryStatusChanged::class, UpdateBurndownSnapshot::class);

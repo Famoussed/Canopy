@@ -14,8 +14,8 @@ use Illuminate\Http\JsonResponse;
 class AnalyticsController extends Controller
 {
     public function __construct(
-        private BurndownService $burndownService,
-        private VelocityService $velocityService,
+        private readonly BurndownService $burndownService,
+        private readonly VelocityService $velocityService,
     ) {}
 
     public function burndown(Project $project, Sprint $sprint): JsonResponse

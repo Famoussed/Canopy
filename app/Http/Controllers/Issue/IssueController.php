@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class IssueController extends Controller
 {
-    public function __construct(private IssueService $service) {}
+    public function __construct(private readonly IssueService $service) {}
 
     public function index(Request $request, Project $project): AnonymousResourceCollection
     {

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Scrum;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Scrum\AssignTaskRequest;
 use App\Http\Requests\Scrum\ChangeStatusRequest;
 use App\Http\Requests\Scrum\CreateTaskRequest;
+use App\Http\Requests\Scrum\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Enums\TaskStatus;
 use App\Models\Task;
@@ -14,13 +16,12 @@ use App\Models\User;
 use App\Models\UserStory;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
 
 class TaskController extends Controller
 {
-    public function __construct(private TaskService $service) {}
+    public function __construct(private readonly TaskService $service) {}
 
     public function index(UserStory $story): AnonymousResourceCollection
     {
@@ -36,14 +37,9 @@ class TaskController extends Controller
             ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    public function update(Request $request, Task $task): TaskResource
+    public function update(UpdateTaskRequest $request, Task $task): TaskResource
     {
-        $this->authorize('update', $task);
-
-        $task = $this->service->update($task, $request->validate([
-            'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:5000'],
-        ]));
+        $task = $this->service->update($task, $request->validated());
 
         return new TaskResource($task);
     }
@@ -59,13 +55,9 @@ class TaskController extends Controller
         return new TaskResource($task);
     }
 
-    public function assign(Request $request, Task $task): TaskResource
+    public function assign(AssignTaskRequest $request, Task $task): TaskResource
     {
-        $this->authorize('assign', $task);
-
-        $request->validate(['assigned_to' => ['required', 'string', 'exists:users,id']]);
-
-        $assignee = User::findOrFail($request->input('assigned_to'));
+        $assignee = User::findOrFail($request->validated('assigned_to'));
 
         $task = $this->service->assign($task, $assignee, $request->user());
 
