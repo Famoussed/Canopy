@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Scrum;
 
+use App\Enums\TaskStatus;
+use App\Exceptions\InvalidStatusTransitionException;
+use App\Exceptions\TaskNotAssignedException;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserStory;
-use App\Enums\TaskStatus;
 use App\Services\TaskService;
-use App\Exceptions\TaskNotAssignedException;
-use App\Exceptions\InvalidStatusTransitionException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -32,14 +32,17 @@ class TaskWorkflowTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected UserStory $story;
+
     protected TaskService $taskService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create(['owner_id' => $this->user->id]);
         $this->story = UserStory::factory()->create(['project_id' => $this->project->id]);

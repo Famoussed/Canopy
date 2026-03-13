@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\Events\Scrum\StoryStatusChanged;
 use App\Actions\Scrum\CalculateEpicCompletionAction;
+use App\Events\Scrum\StoryStatusChanged;
 
 class RecalculateEpicCompletion
 {

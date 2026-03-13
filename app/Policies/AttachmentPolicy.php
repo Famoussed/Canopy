@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Enums\ProjectRole;
 use App\Models\Attachment;
 use App\Models\Project;
 use App\Models\User;
+use App\Traits\ResolvesMembership;
 
 class AttachmentPolicy
 {
+    use ResolvesMembership;
+
     public function before(User $user, string $ability): ?bool
     {
         if ($user->isSuperAdmin()) {
@@ -42,12 +44,5 @@ class AttachmentPolicy
         // Moderator+ herkesin dosyasını silebilir
         // Bu durumda project'e erişmemiz gerekir — attachable üzerinden
         return false; // Detaylı implementasyon attachable type'a göre yapılacak
-    }
-
-    private function getMemberRole(User $user, Project $project): ?ProjectRole
-    {
-        return $user->projectMemberships()
-            ->where('project_id', $project->id)
-            ->first()?->role;
     }
 }

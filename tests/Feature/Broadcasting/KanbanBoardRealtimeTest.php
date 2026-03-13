@@ -5,14 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature\Broadcasting;
 
 use App\Enums\ProjectRole;
-use App\Enums\SprintStatus;
 use App\Enums\StoryStatus;
-use App\Enums\TaskStatus;
 use App\Events\Scrum\SprintClosed;
 use App\Events\Scrum\SprintStarted;
-use App\Events\Scrum\StoryCreated;
 use App\Events\Scrum\StoryStatusChanged;
-use App\Events\Scrum\TaskAssigned;
 use App\Events\Scrum\TaskStatusChanged;
 use App\Models\Project;
 use App\Models\Sprint;

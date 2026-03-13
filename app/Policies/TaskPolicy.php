@@ -8,9 +8,12 @@ use App\Enums\ProjectRole;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Traits\ResolvesMembership;
 
 class TaskPolicy
 {
+    use ResolvesMembership;
+
     public function before(User $user, string $ability): ?bool
     {
         if ($user->isSuperAdmin()) {
@@ -81,19 +84,5 @@ class TaskPolicy
     public function delete(User $user, Task $task): bool
     {
         return $this->isAtLeast($user, $task->userStory->project, ProjectRole::Moderator);
-    }
-
-    private function getMemberRole(User $user, Project $project): ?ProjectRole
-    {
-        return $user->projectMemberships()
-            ->where('project_id', $project->id)
-            ->first()?->role;
-    }
-
-    private function isAtLeast(User $user, Project $project, ProjectRole $minimumRole): bool
-    {
-        $role = $this->getMemberRole($user, $project);
-
-        return $role !== null && $role->isAtLeast($minimumRole);
     }
 }

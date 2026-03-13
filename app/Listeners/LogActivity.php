@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\Models\ActivityLog;
-
 class LogActivity
 {
     /**

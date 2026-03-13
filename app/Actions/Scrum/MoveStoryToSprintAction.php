@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Scrum;
 
-use App\Actions\Scrum\DetectScopeChangeAction;
 use App\Enums\SprintStatus;
 use App\Models\Sprint;
 use App\Models\User;

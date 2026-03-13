@@ -12,8 +12,11 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class extends Component {
+    use WithPagination;
+
     public Project $project;
 
     #[Url]
@@ -175,17 +178,25 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
             $query->where('priority', $this->priorityFilter);
         }
 
-        return $query->latest()->get();
+        return $query->latest()->paginate(25);
     }
 
     #[Computed]
     public function counts(): array
     {
+        $counts = $this->project->issues()
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN status != 'done' THEN 1 ELSE 0 END) as open_count,
+                SUM(CASE WHEN type = 'bug' THEN 1 ELSE 0 END) as bug_count,
+                SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical_count
+            ")->first();
+
         return [
-            'total' => $this->project->issues()->count(),
-            'open' => $this->project->issues()->open()->count(),
-            'bugs' => $this->project->issues()->byType(IssueType::Bug)->count(),
-            'critical' => $this->project->issues()->bySeverity(IssueSeverity::Critical)->count(),
+            'total' => (int) $counts->total,
+            'open' => (int) $counts->open_count,
+            'bugs' => (int) $counts->bug_count,
+            'critical' => (int) $counts->critical_count,
         ];
     }
 }
@@ -343,6 +354,10 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
                 @endforeach
             </flux:table.rows>
         </flux:table>
+
+        <div class="mt-4">
+            {{ $this->issues->links() }}
+        </div>
     @endif
 
     {{-- Edit Modal --}}

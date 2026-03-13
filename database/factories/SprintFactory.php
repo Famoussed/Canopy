@@ -19,7 +19,7 @@ class SprintFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => 'Sprint ' . fake()->unique()->numberBetween(1, 100),
+            'name' => 'Sprint '.fake()->unique()->numberBetween(1, 100),
             'project_id' => Project::factory(),
             'status' => SprintStatus::Planning,
             'start_date' => now()->toDateString(),

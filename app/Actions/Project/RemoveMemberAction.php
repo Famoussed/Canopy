@@ -22,7 +22,7 @@ class RemoveMemberAction
             ->firstOrFail();
 
         if ($membership->isOwner()) {
-            throw new OwnerCannotBeRemovedException();
+            throw new OwnerCannotBeRemovedException;
         }
 
         $membership->delete();

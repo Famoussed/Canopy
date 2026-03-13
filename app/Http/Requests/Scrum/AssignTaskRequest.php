@@ -10,7 +10,12 @@ class AssignTaskRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('assign', $this->route('task'));
+        $task = $this->route('task');
+        if ($task) {
+            $task->loadMissing('userStory.project');
+        }
+
+        return $this->user()->can('assign', $task);
     }
 
     /**

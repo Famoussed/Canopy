@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\Enums\StoryStatus;
 use App\Events\Scrum\SprintClosed;
 use App\Models\UserStory;
-use App\Enums\StoryStatus;
 
 class ReturnUnfinishedStoriesToBacklog
 {

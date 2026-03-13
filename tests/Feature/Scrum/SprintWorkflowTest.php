@@ -48,6 +48,7 @@ class SprintWorkflowTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+
     private Project $project;
 
     protected function setUp(): void

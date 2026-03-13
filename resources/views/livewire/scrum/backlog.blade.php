@@ -70,7 +70,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
     {
         $query = $this->project->userStories()
             ->backlog()
-            ->with('epic', 'creator', 'tasks')
+            ->with(['epic', 'creator', 'tasks.assignee', 'storyPoints'])
             ->ordered();
 
         if ($this->filterEpicId) {

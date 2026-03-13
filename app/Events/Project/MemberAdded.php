@@ -15,7 +15,9 @@ use Illuminate\Queue\SerializesModels;
 
 class MemberAdded implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable;
+    use InteractsWithSockets;
+    use SerializesModels;
 
     public function __construct(
         public readonly Project $project,

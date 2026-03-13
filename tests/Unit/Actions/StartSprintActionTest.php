@@ -46,7 +46,7 @@ class StartSprintActionTest extends TestCase
             'status' => SprintStatus::Planning,
         ]);
 
-        $action = new StartSprintAction();
+        $action = new StartSprintAction;
         $result = $action->execute($sprint);
 
         $this->assertEquals(SprintStatus::Active, $result->status);
@@ -64,7 +64,7 @@ class StartSprintActionTest extends TestCase
 
         $this->expectException(ActiveSprintAlreadyExistsException::class);
 
-        $action = new StartSprintAction();
+        $action = new StartSprintAction;
         $action->execute($sprint);
     }
 }

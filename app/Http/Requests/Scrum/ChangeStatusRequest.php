@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Requests\Scrum;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class ChangeStatusRequest extends FormRequest
 {

@@ -43,7 +43,7 @@ class CalculateEpicCompletionTest extends TestCase
     {
         $epic = Epic::factory()->create();
 
-        $action = new CalculateEpicCompletionAction();
+        $action = new CalculateEpicCompletionAction;
         $result = $action->execute($epic);
 
         $this->assertEquals(0, $result->completion_percentage);
@@ -58,7 +58,7 @@ class CalculateEpicCompletionTest extends TestCase
         UserStory::factory()->done()->create(['epic_id' => $epic->id, 'project_id' => $epic->project_id]);
         UserStory::factory()->create(['epic_id' => $epic->id, 'project_id' => $epic->project_id]);
 
-        $action = new CalculateEpicCompletionAction();
+        $action = new CalculateEpicCompletionAction;
         $result = $action->execute($epic);
 
         $this->assertEquals(66, $result->completion_percentage); // floor(2/3 * 100) = 66
@@ -74,7 +74,7 @@ class CalculateEpicCompletionTest extends TestCase
             'project_id' => $epic->project_id,
         ]);
 
-        $action = new CalculateEpicCompletionAction();
+        $action = new CalculateEpicCompletionAction;
         $result = $action->execute($epic);
 
         $this->assertEquals(100, $result->completion_percentage);

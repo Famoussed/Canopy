@@ -28,7 +28,7 @@ class TaskFactory extends Factory
         ];
     }
 
-    public function assigned(User $user = null): static
+    public function assigned(?User $user = null): static
     {
         return $this->state(fn () => [
             'assigned_to' => $user?->id ?? User::factory(),

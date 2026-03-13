@@ -17,7 +17,11 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class UserStory extends Model
 {
-    use Auditable, BelongsToProject, HasFactory, HasStateMachine, HasUuids;
+    use Auditable;
+    use BelongsToProject;
+    use HasFactory;
+    use HasStateMachine;
+    use HasUuids;
 
     protected $fillable = [
         'project_id',

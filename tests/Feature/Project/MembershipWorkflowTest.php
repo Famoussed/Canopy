@@ -31,9 +31,13 @@ class MembershipWorkflowTest extends TestCase
     use RefreshDatabase;
 
     protected User $owner;
+
     protected User $member;
+
     protected Project $project;
+
     protected AddMemberAction $addMemberAction;
+
     protected RemoveMemberAction $removeMemberAction;
 
     protected function setUp(): void

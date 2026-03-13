@@ -15,9 +15,9 @@ use Tests\TestCase;
  * Epic Workflow Testleri
  *
  * Bu test sınıfı Epic kayıtlarının temel CRUD işlemlerini doğrular.
- * Epic nesneleri proje hiyerarşisinin en üstünde yer aldığı için 
+ * Epic nesneleri proje hiyerarşisinin en üstünde yer aldığı için
  * alt nesnelerin (UserStory) değişimlerinden de etkilenir.
- * 
+ *
  * Test Edilen Senaryolar:
  * - test_user_can_create_epic: Yeni Epic oluşturulması.
  * - test_user_can_update_epic: Mevcut Epic'in ayarlarının güncellenmesi.
@@ -28,13 +28,15 @@ class EpicWorkflowTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected EpicService $epicService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create(['owner_id' => $this->user->id]);
         $this->epicService = app(EpicService::class);
@@ -63,19 +65,19 @@ class EpicWorkflowTest extends TestCase
         $epic = Epic::factory()->create([
             'project_id' => $this->project->id,
             'title' => 'Initial Title',
-            'color' => '#000000'
+            'color' => '#000000',
         ]);
 
         $updatedEpic = $this->epicService->update($epic, [
             'title' => 'Updated Title',
-            'color' => '#FFFFFF'
+            'color' => '#FFFFFF',
         ]);
 
         $this->assertEquals('Updated Title', $updatedEpic->title);
         $this->assertEquals('#FFFFFF', $updatedEpic->color);
         $this->assertDatabaseHas('epics', [
             'id' => $epic->id,
-            'title' => 'Updated Title'
+            'title' => 'Updated Title',
         ]);
     }
 

@@ -50,6 +50,8 @@ class TaskService
             return $this->changeStatusAction->execute($task, $newStatus);
         });
 
+        $task->loadMissing('userStory');
+
         try {
             TaskStatusChanged::dispatch($task, $oldStatus->value, $newStatus->value, $user);
         } catch (BroadcastException $e) {
@@ -63,6 +65,8 @@ class TaskService
     {
         $task->update(['assigned_to' => $assignee->id]);
         $task = $task->fresh();
+
+        $task->loadMissing('userStory');
 
         try {
             TaskAssigned::dispatch($task, $assignee, $assignedBy);

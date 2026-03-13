@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Issues;
 
+use App\Enums\IssuePriority;
+use App\Enums\IssueSeverity;
+use App\Enums\IssueStatus;
+use App\Enums\IssueType;
+use App\Exceptions\InvalidStatusTransitionException;
 use App\Models\Issue;
 use App\Models\Project;
 use App\Models\User;
-use App\Enums\IssueStatus;
-use App\Enums\IssuePriority;
-use App\Enums\IssueSeverity;
-use App\Enums\IssueType;
 use App\Services\IssueService;
-use App\Exceptions\InvalidStatusTransitionException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -35,13 +35,15 @@ class IssueWorkflowTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected IssueService $issueService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create(['owner_id' => $this->user->id]);
         $this->issueService = app(IssueService::class);
@@ -76,7 +78,7 @@ class IssueWorkflowTest extends TestCase
     {
         $issue = Issue::factory()->create([
             'project_id' => $this->project->id,
-            'title' => 'Old Title'
+            'title' => 'Old Title',
         ]);
 
         $updateData = [
@@ -103,7 +105,7 @@ class IssueWorkflowTest extends TestCase
     {
         $issue = Issue::factory()->create([
             'project_id' => $this->project->id,
-            'status' => IssueStatus::New->value
+            'status' => IssueStatus::New->value,
         ]);
 
         // New -> InProgress
@@ -119,7 +121,7 @@ class IssueWorkflowTest extends TestCase
     {
         $issue = Issue::factory()->create([
             'project_id' => $this->project->id,
-            'status' => IssueStatus::Done->value
+            'status' => IssueStatus::Done->value,
         ]);
 
         $this->expectException(InvalidStatusTransitionException::class);

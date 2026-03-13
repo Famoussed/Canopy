@@ -12,7 +12,7 @@ class ActiveSprintAlreadyExistsException extends Exception
         public readonly string $projectId,
     ) {
         parent::__construct(
-            "Bu projede zaten aktif bir Sprint bulunuyor. Aynı anda yalnızca 1 aktif Sprint olabilir.",
+            'Bu projede zaten aktif bir Sprint bulunuyor. Aynı anda yalnızca 1 aktif Sprint olabilir.',
             422,
         );
     }

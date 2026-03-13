@@ -8,9 +8,12 @@ use App\Enums\ProjectRole;
 use App\Models\Epic;
 use App\Models\Project;
 use App\Models\User;
+use App\Traits\ResolvesMembership;
 
 class EpicPolicy
 {
+    use ResolvesMembership;
+
     public function before(User $user, string $ability): ?bool
     {
         if ($user->isSuperAdmin()) {
@@ -42,19 +45,5 @@ class EpicPolicy
     public function delete(User $user, Epic $epic): bool
     {
         return $this->isAtLeast($user, $epic->project, ProjectRole::Moderator);
-    }
-
-    private function getMemberRole(User $user, Project $project): ?ProjectRole
-    {
-        return $user->projectMemberships()
-            ->where('project_id', $project->id)
-            ->first()?->role;
-    }
-
-    private function isAtLeast(User $user, Project $project, ProjectRole $minimumRole): bool
-    {
-        $role = $this->getMemberRole($user, $project);
-
-        return $role !== null && $role->isAtLeast($minimumRole);
     }
 }

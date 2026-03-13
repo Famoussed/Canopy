@@ -34,22 +34,22 @@ class CalculateBurndownAction
         $actualLine = [];
         $remainingPoints = $totalPoints;
 
+        $doneStories = $sprint->userStories()
+            ->where('status', StoryStatus::Done)
+            ->select('id', 'total_points', 'updated_at')
+            ->get();
+
         foreach ($period as $date) {
             if ($date->isFuture()) {
                 $actualLine[] = null;
                 continue;
             }
 
-            $completedToday = $sprint->userStories()
-                ->where('status', StoryStatus::Done)
-                ->whereDate('updated_at', '<=', $date)
+            $completedPoints = $doneStories
+                ->filter(fn ($s) => $s->updated_at->startOfDay()->lte($date))
                 ->sum('total_points');
 
-            $actualLine[] = round($totalPoints - (float) $completedToday, 1);
-        }
-
-        // Scope changes
-        $scopeChanges = $sprint->scopeChanges()
+            $actualLine[] = round($totalPoints - (float) $completedPoints, 1);
             ->with('userStory')
             ->get()
             ->map(fn ($change) => [

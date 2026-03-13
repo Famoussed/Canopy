@@ -16,20 +16,17 @@ class CalculateVelocityAction
             ->where('status', SprintStatus::Closed)
             ->orderByDesc('created_at')
             ->limit($sprintCount)
+            ->withSum(['userStories as completed_points' => function ($q) {
+                $q->where('status', StoryStatus::Done);
+            }], 'total_points')
             ->get()
             ->reverse()
             ->values();
 
-        $sprintData = $sprints->map(function ($sprint) {
-            $completedPoints = (float) $sprint->userStories()
-                ->where('status', StoryStatus::Done)
-                ->sum('total_points');
-
-            return [
-                'name' => $sprint->name,
-                'completed_points' => $completedPoints,
-            ];
-        })->toArray();
+        $sprintData = $sprints->map(fn ($sprint) => [
+            'name' => $sprint->name,
+            'completed_points' => (float) ($sprint->completed_points ?? 0),
+        ])->toArray();
 
         $totalPoints = array_sum(array_column($sprintData, 'completed_points'));
         $averageVelocity = count($sprintData) > 0 ? round($totalPoints / count($sprintData), 1) : 0;

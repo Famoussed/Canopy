@@ -12,7 +12,7 @@ class ReorderBacklogAction
     /**
      * BR-02: Backlog sıralaması.
      *
-     * @param array<int, string> $orderedIds  Story ID'leri sırasıyla
+     * @param  array<int, string>  $orderedIds  Story ID'leri sırasıyla
      */
     public function execute(Project $project, array $orderedIds): void
     {

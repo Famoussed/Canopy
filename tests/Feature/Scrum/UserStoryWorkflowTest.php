@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Scrum;
 
+use App\Enums\StoryStatus;
+use App\Exceptions\InvalidStatusTransitionException;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\User;
 use App\Models\UserStory;
-use App\Enums\StoryStatus;
 use App\Services\UserStoryService;
-use App\Exceptions\InvalidStatusTransitionException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,13 +31,15 @@ class UserStoryWorkflowTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected UserStoryService $storyService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create(['owner_id' => $this->user->id]);
         $this->storyService = app(UserStoryService::class);
@@ -75,7 +77,7 @@ class UserStoryWorkflowTest extends TestCase
     {
         $story = UserStory::factory()->create([
             'project_id' => $this->project->id,
-            'status' => StoryStatus::New->value
+            'status' => StoryStatus::New->value,
         ]);
 
         $this->storyService->changeStatus($story, StoryStatus::InProgress, $this->user);
@@ -89,7 +91,7 @@ class UserStoryWorkflowTest extends TestCase
     {
         $story = UserStory::factory()->create([
             'project_id' => $this->project->id,
-            'status' => StoryStatus::Done->value
+            'status' => StoryStatus::Done->value,
         ]);
 
         $this->expectException(InvalidStatusTransitionException::class);

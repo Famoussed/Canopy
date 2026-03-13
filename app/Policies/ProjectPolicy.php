@@ -7,9 +7,12 @@ namespace App\Policies;
 use App\Enums\ProjectRole;
 use App\Models\Project;
 use App\Models\User;
+use App\Traits\ResolvesMembership;
 
 class ProjectPolicy
 {
+    use ResolvesMembership;
+
     /**
      * Super admin bypass.
      */
@@ -76,27 +79,5 @@ class ProjectPolicy
     public function changeRole(User $user, Project $project): bool
     {
         return $this->isAtLeast($user, $project, ProjectRole::Owner);
-    }
-
-    // ─── Helpers ───
-
-    private function getMemberRole(User $user, Project $project): ?ProjectRole
-    {
-        $membership = $user->projectMemberships()
-            ->where('project_id', $project->id)
-            ->first();
-
-        return $membership?->role;
-    }
-
-    private function isAtLeast(User $user, Project $project, ProjectRole $minimumRole): bool
-    {
-        $role = $this->getMemberRole($user, $project);
-
-        if ($role === null) {
-            return false;
-        }
-
-        return $role->isAtLeast($minimumRole);
     }
 }

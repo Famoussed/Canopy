@@ -14,7 +14,9 @@ use Illuminate\Queue\SerializesModels;
 
 class IssueCreated implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable;
+    use InteractsWithSockets;
+    use SerializesModels;
 
     public function __construct(
         public readonly Issue $issue,

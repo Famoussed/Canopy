@@ -49,7 +49,7 @@ class ChangeTaskStatusActionTest extends TestCase
 
         $this->expectException(TaskNotAssignedException::class);
 
-        $action = new ChangeTaskStatusAction();
+        $action = new ChangeTaskStatusAction;
         $action->execute($task, TaskStatus::InProgress);
     }
 
@@ -63,7 +63,7 @@ class ChangeTaskStatusActionTest extends TestCase
             'assigned_to' => $user->id,
         ]);
 
-        $action = new ChangeTaskStatusAction();
+        $action = new ChangeTaskStatusAction;
         $result = $action->execute($task, TaskStatus::InProgress);
 
         $this->assertEquals(TaskStatus::InProgress, $result->status);

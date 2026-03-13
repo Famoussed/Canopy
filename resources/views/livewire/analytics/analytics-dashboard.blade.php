@@ -55,34 +55,36 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
     }
 
     #[Computed]
-    public function totalStories(): int
+    #[Computed]
+    public function stats(): array
     {
-        return $this->project->userStories()->count();
+        $stories = $this->project->userStories()
+            ->selectRaw("COUNT(*) as total, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed", [\App\Enums\StoryStatus::Done->value])
+            ->first();
+
+        $issues = $this->project->issues()
+            ->selectRaw("COUNT(*) as total, SUM(CASE WHEN status != ? THEN 1 ELSE 0 END) as open_count", [\App\Enums\IssueStatus::Done->value])
+            ->first();
+
+        return [
+            "total_stories" => (int) $stories->total,
+            "completed_stories" => (int) $stories->completed,
+            "total_issues" => (int) $issues->total,
+            "open_issues" => (int) $issues->open_count,
+            "closed_sprints" => $this->project->sprints()->closed()->count(),
+        ];
     }
 
     #[Computed]
-    public function completedStories(): int
-    {
-        return $this->project->userStories()->byStatus(\App\Enums\StoryStatus::Done)->count();
-    }
-
+    public function totalStories(): int { return $this->stats["total_stories"]; }
     #[Computed]
-    public function totalIssues(): int
-    {
-        return $this->project->issues()->count();
-    }
-
+    public function completedStories(): int { return $this->stats["completed_stories"]; }
     #[Computed]
-    public function openIssues(): int
-    {
-        return $this->project->issues()->open()->count();
-    }
-
+    public function totalIssues(): int { return $this->stats["total_issues"]; }
     #[Computed]
-    public function closedSprints(): int
-    {
-        return $this->project->sprints()->closed()->count();
-    }
+    public function openIssues(): int { return $this->stats["open_issues"]; }
+    #[Computed]
+    public function closedSprints(): int { return $this->stats["closed_sprints"]; }
 
     #[Computed]
     public function completionRate(): int

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Scrum;
 
+use App\Enums\StoryStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Scrum\ChangeStatusRequest;
 use App\Http\Requests\Scrum\CreateUserStoryRequest;
@@ -12,7 +13,6 @@ use App\Http\Requests\Scrum\MoveToSprintRequest;
 use App\Http\Requests\Scrum\ReorderBacklogRequest;
 use App\Http\Requests\Scrum\UpdateUserStoryRequest;
 use App\Http\Resources\UserStoryResource;
-use App\Enums\StoryStatus;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\UserStory;

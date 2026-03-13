@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use Illuminate\Broadcasting\Channel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-
 class BroadcastProjectUpdate
 {
     /**

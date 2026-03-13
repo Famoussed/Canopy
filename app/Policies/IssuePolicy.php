@@ -8,9 +8,12 @@ use App\Enums\ProjectRole;
 use App\Models\Issue;
 use App\Models\Project;
 use App\Models\User;
+use App\Traits\ResolvesMembership;
 
 class IssuePolicy
 {
+    use ResolvesMembership;
+
     public function before(User $user, string $ability): ?bool
     {
         if ($user->isSuperAdmin()) {
@@ -83,19 +86,5 @@ class IssuePolicy
         }
 
         return $issue->created_by === $user->id;
-    }
-
-    private function getMemberRole(User $user, Project $project): ?ProjectRole
-    {
-        return $user->projectMemberships()
-            ->where('project_id', $project->id)
-            ->first()?->role;
-    }
-
-    private function isAtLeast(User $user, Project $project, ProjectRole $minimumRole): bool
-    {
-        $role = $this->getMemberRole($user, $project);
-
-        return $role !== null && $role->isAtLeast($minimumRole);
     }
 }

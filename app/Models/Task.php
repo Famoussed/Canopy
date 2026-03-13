@@ -15,7 +15,10 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Task extends Model
 {
-    use Auditable, HasFactory, HasStateMachine, HasUuids;
+    use Auditable;
+    use HasFactory;
+    use HasStateMachine;
+    use HasUuids;
 
     protected $fillable = [
         'user_story_id',

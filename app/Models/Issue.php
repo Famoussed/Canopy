@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\IssueStatus;
 use App\Enums\IssuePriority;
 use App\Enums\IssueSeverity;
+use App\Enums\IssueStatus;
 use App\Enums\IssueType;
 use App\Traits\Auditable;
 use App\Traits\BelongsToProject;
@@ -19,7 +19,11 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Issue extends Model
 {
-    use Auditable, BelongsToProject, HasFactory, HasStateMachine, HasUuids;
+    use Auditable;
+    use BelongsToProject;
+    use HasFactory;
+    use HasStateMachine;
+    use HasUuids;
 
     protected $fillable = [
         'project_id',

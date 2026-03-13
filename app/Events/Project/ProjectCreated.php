@@ -11,7 +11,8 @@ use Illuminate\Queue\SerializesModels;
 
 class ProjectCreated
 {
-    use Dispatchable, SerializesModels;
+    use Dispatchable;
+    use SerializesModels;
 
     public function __construct(
         public readonly Project $project,

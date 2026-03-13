@@ -22,10 +22,7 @@ class SprintController extends Controller
     public function index(Project $project): AnonymousResourceCollection
     {
         return SprintResource::collection(
-            $project->sprints()->withCount('userStories')->latest()->get()
-        );
-    }
-
+            $project->sprints()->withCount('userStories')->latest()->paginate(request()->integer('per_page', 20))
     public function store(CreateSprintRequest $request, Project $project): JsonResponse
     {
         $sprint = $this->service->create($request->validated(), $project);

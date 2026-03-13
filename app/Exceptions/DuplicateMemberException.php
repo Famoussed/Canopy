@@ -13,7 +13,7 @@ class DuplicateMemberException extends Exception
         public readonly string $projectId,
     ) {
         parent::__construct(
-            "Bu kullanıcı zaten projenin üyesi.",
+            'Bu kullanıcı zaten projenin üyesi.',
             422,
         );
     }

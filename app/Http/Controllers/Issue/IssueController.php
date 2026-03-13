@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Issue;
 
+use App\Enums\IssueStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Issue\CreateIssueRequest;
 use App\Http\Requests\Issue\UpdateIssueRequest;
 use App\Http\Requests\Scrum\ChangeStatusRequest;
 use App\Http\Resources\IssueResource;
-use App\Enums\IssueStatus;
 use App\Models\Issue;
 use App\Models\Project;
 use App\Services\IssueService;

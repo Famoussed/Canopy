@@ -10,12 +10,14 @@ use App\Traits\BelongsToProject;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Epic extends Model
 {
-    use Auditable, BelongsToProject, HasFactory, HasUuids;
+    use Auditable;
+    use BelongsToProject;
+    use HasFactory;
+    use HasUuids;
 
     protected $fillable = [
         'project_id',
@@ -44,6 +46,5 @@ class Epic extends Model
     }
 
     // ─── Accessors ───
-
 
 }

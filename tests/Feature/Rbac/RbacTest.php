@@ -51,8 +51,11 @@ class RbacTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+
     private User $moderator;
+
     private User $member;
+
     private Project $project;
 
     protected function setUp(): void

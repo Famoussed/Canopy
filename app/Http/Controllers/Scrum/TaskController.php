@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Scrum;
 
+use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Scrum\AssignTaskRequest;
 use App\Http\Requests\Scrum\ChangeStatusRequest;
 use App\Http\Requests\Scrum\CreateTaskRequest;
 use App\Http\Requests\Scrum\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
-use App\Enums\TaskStatus;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserStory;
@@ -46,6 +46,7 @@ class TaskController extends Controller
 
     public function changeStatus(ChangeStatusRequest $request, Task $task): TaskResource
     {
+        $task->loadMissing('userStory.project');
         $this->authorize('changeStatus', $task);
 
         $newStatus = TaskStatus::from($request->validated('status'));
@@ -66,6 +67,7 @@ class TaskController extends Controller
 
     public function destroy(Task $task): JsonResponse
     {
+        $task->loadMissing('userStory.project');
         $this->authorize('delete', $task);
 
         $this->service->delete($task);
