@@ -124,23 +124,26 @@ foreach ($orderedIds as $order => $storyId) {
 * **Önerilen Düzeltme:** Tek SQL CASE ifadesi veya `upsert()` toplu güncelleme ile:
 
 ```php
-// Seçenek 1: Raw SQL CASE (en hızlı)
+// Seçenek 1: Parametrize CASE ifadesi (en hızlı, injection-safe)
 $cases = [];
-$ids = [];
+$bindings = [];
 foreach ($orderedIds as $order => $storyId) {
-    $cases[] = "WHEN id = '{$storyId}' THEN " . ($order + 1);
-    $ids[] = $storyId;
+    $cases[] = 'WHEN id = ? THEN ?';
+    $bindings[] = $storyId;
+    $bindings[] = $order + 1;
 }
-if (!empty($ids)) {
-    $caseStr = implode(' ', $cases);
-    UserStory::where('project_id', $project->id)
-        ->whereNull('sprint_id')
-        ->whereIn('id', $ids)
-        ->update(['order' => DB::raw("CASE {$caseStr} END")]);
+if (!empty($bindings)) {
+    $caseStatement = implode(' ', $cases);
+    $projectId = $project->id;
+    DB::update(
+        "UPDATE user_stories SET `order` = CASE {$caseStatement} END
+         WHERE project_id = ? AND sprint_id IS NULL AND id IN (" . implode(',', array_fill(0, count($orderedIds), '?')) . ")",
+        array_merge($bindings, [$projectId], $orderedIds)
+    );
 }
 ```
 
-* **Ödünleşim / Riskler:** Raw SQL kullanılması okunabilirliği azaltır; alternatif olarak `DB::transaction` içinde toplu `UPDATE ... CASE` kullanılabilir
+* **Ödünleşim / Riskler:** Raw SQL kullanılması okunabilirliği azaltır; tüm değerler `?` placeholder ile parametrize edilmiş olup SQL injection riski yoktur
 * **Tahmini Etki:** 50 sorgu → 1 sorgu (%98 azalma)
 * **Kaldırma Güvenliği:** Doğrulama Gerekli
 * **Yeniden Kullanım Kapsamı:** Lokal dosya
@@ -942,16 +945,13 @@ class ReorderBacklogAction
         }
 
         $caseStatement = implode(' ', $cases);
+        $projectId = $project->id;
 
-        UserStory::where('project_id', $project->id)
-            ->whereNull('sprint_id')
-            ->whereIn('id', $orderedIds)
-            ->update([
-                'order' => DB::raw("CASE {$caseStatement} END"),
-            ]);
-
-        // Not: DB::raw binding'i ile injection koruması sağlanır
-        // Laravel'in whereIn + CASE yapısı parametrize edilmiştir
+        DB::update(
+            "UPDATE user_stories SET `order` = CASE {$caseStatement} END
+             WHERE project_id = ? AND sprint_id IS NULL AND id IN (" . implode(',', array_fill(0, count($orderedIds), '?')) . ')',
+            array_merge($bindings, [$projectId], $orderedIds)
+        );
     }
 }
 ```
