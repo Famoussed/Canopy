@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Actions;
 
-use App\Actions\Analytics\CalculateBurndownAction;
+use App\Services\BurndownService;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\UserStory;
@@ -20,12 +20,12 @@ class CalculateBurndownActionTest extends TestCase
 {
     use RefreshDatabase;
 
-    private CalculateBurndownAction $action;
+    private BurndownService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->action = new CalculateBurndownAction;
+        $this->service = new BurndownService;
     }
 
     public function test_ideal_line_starts_at_total_points(): void
@@ -49,7 +49,7 @@ class CalculateBurndownActionTest extends TestCase
             'total_points' => 5,
         ]);
 
-        $result = $this->action->execute($sprint);
+        $result = $this->service->getBurndownData($sprint);
 
         $this->assertEquals(15.0, $result['total_points']);
         $this->assertEquals(15.0, $result['ideal_line'][0]);
@@ -63,7 +63,7 @@ class CalculateBurndownActionTest extends TestCase
             'end_date' => now()->addDays(14)->toDateString(),
         ]);
 
-        $result = $this->action->execute($sprint);
+        $result = $this->service->getBurndownData($sprint);
 
         $this->assertEquals(0.0, $result['total_points']);
         $this->assertNotEmpty($result['ideal_line']);
@@ -92,7 +92,7 @@ class CalculateBurndownActionTest extends TestCase
             'changed_by' => $project->owner_id,
         ]);
 
-        $result = $this->action->execute($sprint);
+        $result = $this->service->getBurndownData($sprint);
 
         $this->assertNotEmpty($result['scope_changes']);
         $this->assertEquals('added', $result['scope_changes'][0]['type']);
@@ -105,7 +105,7 @@ class CalculateBurndownActionTest extends TestCase
             'end_date' => now()->addDays(14)->toDateString(),
         ]);
 
-        $result = $this->action->execute($sprint);
+        $result = $this->service->getBurndownData($sprint);
 
         $this->assertArrayHasKey('sprint', $result);
         $this->assertArrayHasKey('total_points', $result);

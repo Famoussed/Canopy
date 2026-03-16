@@ -40,6 +40,19 @@ class ProjectService
         return $project->fresh();
     }
 
+    public function listForUser(string $userId, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        return Project::forUser($userId)
+            ->withDetails()
+            ->latest()
+            ->paginate($filters['per_page'] ?? 20);
+    }
+
+    public function getProjectDetails(Project $project): Project
+    {
+        return $project->load(['owner', 'memberships'])->loadCount('members');
+    }
+
     public function delete(Project $project): void
     {
         // BR-15: Soft delete

@@ -21,11 +21,7 @@ class ProjectController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $projects = Project::forUser($request->user()->id)
-            ->with(['owner', 'memberships'])
-            ->withCount('members')
-            ->latest()
-            ->paginate($request->integer('per_page', 20));
+        $projects = $this->service->listForUser($request->user()->id, $request->all());
 
         return ProjectResource::collection($projects);
     }
@@ -41,7 +37,7 @@ class ProjectController extends Controller
 
     public function show(Project $project): ProjectResource
     {
-        return new ProjectResource($project->load(['owner', 'memberships'])->loadCount('members'));
+        return new ProjectResource($this->service->getProjectDetails($project));
     }
 
     public function update(UpdateProjectRequest $request, Project $project): ProjectResource

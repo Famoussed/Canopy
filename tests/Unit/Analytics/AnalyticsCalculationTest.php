@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Analytics;
 
-use App\Actions\Analytics\CalculateVelocityAction;
+use App\Services\VelocityService;
 use App\Actions\Analytics\SnapshotDailyBurndownAction;
 use App\Enums\ProjectRole;
 use App\Enums\SprintStatus;
@@ -176,7 +176,7 @@ class AnalyticsCalculationTest extends TestCase
 
     public function test_velocity_returns_correct_structure(): void
     {
-        $data = app(CalculateVelocityAction::class)->execute($this->project);
+        $data = app(VelocityService::class)->getVelocityData($this->project);
 
         $this->assertArrayHasKey('sprints', $data);
         $this->assertArrayHasKey('average_velocity', $data);
@@ -215,7 +215,7 @@ class AnalyticsCalculationTest extends TestCase
             'status' => StoryStatus::Done,
         ]);
 
-        $data = app(CalculateVelocityAction::class)->execute($this->project);
+        $data = app(VelocityService::class)->getVelocityData($this->project);
 
         $this->assertCount(2, $data['sprints']);
         $this->assertEquals(25.0, $data['average_velocity']); // (20+30)/2
@@ -227,7 +227,7 @@ class AnalyticsCalculationTest extends TestCase
             'project_id' => $this->project->id,
         ]);
 
-        $data = app(CalculateVelocityAction::class)->execute($this->project);
+        $data = app(VelocityService::class)->getVelocityData($this->project);
 
         $this->assertCount(0, $data['sprints']);
         $this->assertEquals(0, $data['average_velocity']);
@@ -235,7 +235,7 @@ class AnalyticsCalculationTest extends TestCase
 
     public function test_velocity_returns_zero_when_no_closed_sprints(): void
     {
-        $data = app(CalculateVelocityAction::class)->execute($this->project);
+        $data = app(VelocityService::class)->getVelocityData($this->project);
 
         $this->assertEquals(0, $data['average_velocity']);
         $this->assertEmpty($data['sprints']);

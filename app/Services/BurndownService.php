@@ -18,7 +18,7 @@ class BurndownService
         $period = CarbonPeriod::create($startDate, $endDate);
 
         // Sprint'teki toplam puanlar
-        $totalPoints = (float) $sprint->userStories()->sum('total_points');
+        $totalPoints = $sprint->getTotalStoryPoints();
 
         return [
             'sprint' => [
@@ -49,10 +49,7 @@ class BurndownService
 
     private function calculateActualLine(Sprint $sprint, float $totalPoints, CarbonPeriod $period): array
     {
-        $doneStories = $sprint->userStories()
-            ->where('status', StoryStatus::Done)
-            ->select('id', 'total_points', 'updated_at')
-            ->get();
+        $doneStories = $sprint->getDoneStoriesWithPoints();
 
         $actualLine = [];
 
@@ -63,7 +60,7 @@ class BurndownService
             }
 
             $completedPoints = $doneStories
-                ->filter(fn ($s) => $s->updated_at->startOfDay()->lte($date))
+                ->filter(fn($s) => $s->updated_at->startOfDay()->lte($date))
                 ->sum('total_points');
 
             $actualLine[] = round($totalPoints - (float) $completedPoints, 1);
@@ -77,7 +74,7 @@ class BurndownService
         return $sprint->scopeChanges()
             ->with('userStory')
             ->get()
-            ->map(fn ($change) => [
+            ->map(fn($change) => [
                 'date' => $change->changed_at->toDateString(),
                 'type' => $change->change_type,
                 'points_delta' => (float) ($change->userStory->total_points ?? 0),

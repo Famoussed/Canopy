@@ -45,6 +45,17 @@ class Epic extends Model
         return $this->hasMany(UserStory::class);
     }
 
-    // ─── Accessors ───
+    // ─── Scopes ───
 
+    public function scopeWithStoryCount($query)
+    {
+        return $query->withCount('userStories');
+    }
+
+    // ─── Helpers ───
+
+    public function removeStoriesFromEpic(): void
+    {
+        $this->userStories()->update(['epic_id' => null]);
+    }
 }

@@ -66,4 +66,29 @@ class Sprint extends Model
     {
         return $query->where('status', SprintStatus::Planning);
     }
+
+    public function scopeWithStoryCount($query)
+    {
+        return $query->withCount('userStories');
+    }
+
+    // ─── Helpers ───
+
+    public function getTotalStoryPoints(): float
+    {
+        return (float) $this->userStories()->sum('total_points');
+    }
+
+    public function getDoneStoriesWithPoints()
+    {
+        return $this->userStories()
+            ->where('status', \App\Enums\StoryStatus::Done)
+            ->select(['id', 'total_points', 'updated_at'])
+            ->get();
+    }
+
+    public function returnStoriesToBacklog(): void
+    {
+        $this->userStories()->update(['sprint_id' => null]);
+    }
 }

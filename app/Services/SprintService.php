@@ -25,7 +25,7 @@ class SprintService
     public function listByProject(Project $project, int $perPage = 20)
     {
         return $project->sprints()
-            ->withCount('userStories')
+            ->withStoryCount()
             ->latest()
             ->paginate($perPage);
     }
@@ -53,7 +53,7 @@ class SprintService
     public function delete(Sprint $sprint): void
     {
         // Sprint'teki story'ler backlog'a döner
-        $sprint->userStories()->update(['sprint_id' => null]);
+        $sprint->returnStoriesToBacklog();
 
         $sprint->delete();
     }

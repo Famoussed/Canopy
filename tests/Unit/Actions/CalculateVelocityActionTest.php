@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Actions;
 
-use App\Actions\Analytics\CalculateVelocityAction;
+use App\Services\VelocityService;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\UserStory;
@@ -12,7 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * U-10: CalculateVelocityAction testi.
+ * U-10: VelocityService testi.
  *
  * Sprint bazında velocity hesaplamasını doğrular.
  */
@@ -20,12 +20,12 @@ class CalculateVelocityActionTest extends TestCase
 {
     use RefreshDatabase;
 
-    private CalculateVelocityAction $action;
+    private VelocityService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->action = new CalculateVelocityAction;
+        $this->service = new VelocityService;
     }
 
     public function test_calculates_velocity_for_closed_sprints(): void
@@ -47,7 +47,7 @@ class CalculateVelocityActionTest extends TestCase
             'total_points' => 20,
         ]);
 
-        $result = $this->action->execute($project);
+        $result = $this->service->getVelocityData($project);
 
         $this->assertCount(2, $result['sprints']);
         $this->assertEquals(15.0, $result['average_velocity']);
@@ -60,7 +60,7 @@ class CalculateVelocityActionTest extends TestCase
         Sprint::factory()->create(['project_id' => $project->id, 'status' => \App\Enums\SprintStatus::Planning]);
         Sprint::factory()->active()->create(['project_id' => $project->id]);
 
-        $result = $this->action->execute($project);
+        $result = $this->service->getVelocityData($project);
 
         $this->assertCount(0, $result['sprints']);
         $this->assertEquals(0, $result['average_velocity']);
@@ -74,7 +74,7 @@ class CalculateVelocityActionTest extends TestCase
             Sprint::factory()->closed()->create(['project_id' => $project->id]);
         }
 
-        $result = $this->action->execute($project, 3);
+        $result = $this->service->getVelocityData($project, 3);
 
         $this->assertCount(3, $result['sprints']);
     }
@@ -96,7 +96,7 @@ class CalculateVelocityActionTest extends TestCase
             'total_points' => 5,
         ]);
 
-        $result = $this->action->execute($project);
+        $result = $this->service->getVelocityData($project);
 
         $this->assertEquals(10.0, $result['sprints'][0]['completed_points']);
     }

@@ -71,23 +71,39 @@ class Issue extends Model
         return $query->where('status', '!=', IssueStatus::Done);
     }
 
-    public function scopeByPriority($query, IssuePriority $priority)
+    public function scopeByPriority($query, IssuePriority|string $priority)
     {
         return $query->where('priority', $priority);
     }
 
-    public function scopeBySeverity($query, IssueSeverity $severity)
+    public function scopeBySeverity($query, IssueSeverity|string $severity)
     {
         return $query->where('severity', $severity);
     }
 
-    public function scopeByType($query, IssueType $type)
+    public function scopeByType($query, IssueType|string $type)
     {
         return $query->where('type', $type);
+    }
+
+    public function scopeByStatus($query, array|string $statuses)
+    {
+        $statusList = is_array($statuses) ? $statuses : explode(',', $statuses);
+        return $query->whereIn('status', $statusList);
     }
 
     public function scopeAssignedTo($query, string $userId)
     {
         return $query->where('assigned_to', $userId);
+    }
+
+    public function scopeFilter($query, array $filters, ?string $userId = null)
+    {
+        return $query
+            ->when(filled($filters['type'] ?? null), fn($q) => $q->byType($filters['type']))
+            ->when(filled($filters['priority'] ?? null), fn($q) => $q->byPriority($filters['priority']))
+            ->when(filled($filters['severity'] ?? null), fn($q) => $q->bySeverity($filters['severity']))
+            ->when(filled($filters['status'] ?? null), fn($q) => $q->byStatus($filters['status']))
+            ->when(($filters['assigned_to'] ?? null) === 'me' && $userId, fn($q) => $q->assignedTo($userId));
     }
 }

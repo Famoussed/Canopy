@@ -27,10 +27,20 @@ class EpicService
         return $epic->fresh();
     }
 
+    public function listByProject(Project $project): \Illuminate\Database\Eloquent\Collection
+    {
+        return $project->epics()->withStoryCount()->get();
+    }
+
+    public function getEpicDetails(Epic $epic): Epic
+    {
+        return $epic->load('userStories');
+    }
+
     public function delete(Epic $epic): void
     {
         // Epic'e bağlı story'lerin epic_id'si null yapılır
-        $epic->userStories()->update(['epic_id' => null]);
+        $epic->removeStoriesFromEpic();
 
         $epic->delete();
     }

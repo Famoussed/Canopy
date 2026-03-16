@@ -21,7 +21,7 @@ class EpicController extends Controller
 
     public function index(Project $project): AnonymousResourceCollection
     {
-        $epics = $project->epics()->withCount('userStories')->get();
+        $epics = $this->service->listByProject($project);
 
         return EpicResource::collection($epics);
     }
@@ -37,7 +37,7 @@ class EpicController extends Controller
 
     public function show(Project $project, Epic $epic): EpicResource
     {
-        return new EpicResource($epic->load('userStories'));
+        return new EpicResource($this->service->getEpicDetails($epic));
     }
 
     public function update(UpdateEpicRequest $request, Project $project, Epic $epic): EpicResource

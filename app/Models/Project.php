@@ -90,6 +90,11 @@ class Project extends Model
         return $query->whereNull('deleted_at');
     }
 
+    public function scopeWithDetails($query)
+    {
+        return $query->with(['owner', 'memberships'])->withCount('members');
+    }
+
     // ─── Helpers ───
 
     public function getEstimationRoles(): array

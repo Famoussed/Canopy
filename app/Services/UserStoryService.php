@@ -97,26 +97,11 @@ class UserStoryService
 
     public function list(Project $project, array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        $query = $project->userStories()->with(['epic', 'creator']);
-
-        if (filter_var($filters['backlog'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-            $query->backlog();
-        }
-
-        if (filled($filters['sprint_id'] ?? null)) {
-            $query->where('sprint_id', $filters['sprint_id']);
-        }
-
-        if (filled($filters['epic_id'] ?? null)) {
-            $query->where('epic_id', $filters['epic_id']);
-        }
-
-        if (filled($filters['status'] ?? null)) {
-            $statuses = explode(',', $filters['status']);
-            $query->whereIn('status', $statuses);
-        }
-
-        return $query->orderBy('order')->paginate($filters['per_page'] ?? 50);
+        return $project->userStories()
+            ->with(['epic', 'creator'])
+            ->filter($filters)
+            ->ordered()
+            ->paginate($filters['per_page'] ?? 50);
     }
 
     public function getStoryDetails(UserStory $story): UserStory

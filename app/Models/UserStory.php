@@ -99,4 +99,20 @@ class UserStory extends Model
     {
         return $query->orderBy('order');
     }
+
+    public function scopeFilter($query, array $filters)
+    {
+        return $query->when(isset($filters['search']), function ($q) use ($filters) {
+            $q->where('title', 'like', '%' . $filters['search'] . '%');
+        })
+            ->when(isset($filters['epic_id']), function ($q) use ($filters) {
+                $q->where('epic_id', $filters['epic_id']);
+            })
+            ->when(isset($filters['sprint_id']), function ($q) use ($filters) {
+                $q->where('sprint_id', $filters['sprint_id']);
+            })
+            ->when(isset($filters['status']), function ($q) use ($filters) {
+                $q->where('status', $filters['status']);
+            });
+    }
 }
