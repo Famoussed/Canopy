@@ -43,18 +43,32 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
     #[Computed]
     public function velocityData(): array
     {
-        return app(VelocityService::class)->getVelocityData($this->project, $this->velocitySprintCount);
+        $data = app(VelocityService::class)->getVelocityData($this->project, $this->velocitySprintCount);
+        return $data['sprints'] ?? [];
     }
 
     #[Computed]
     public function burndownData(): array
     {
-        return $this->activeSprint
-            ? app(BurndownService::class)->getBurndownData($this->activeSprint)
-            : [];
+        if (! $this->activeSprint) {
+            return [];
+        }
+
+        $data = app(BurndownService::class)->getBurndownData($this->activeSprint);
+        
+        // Transform for JS Chart: Array of { day, ideal, remaining }
+        $chartData = [];
+        foreach ($data['ideal_line'] as $index => $ideal) {
+            $chartData[] = [
+                'day' => $index + 1,
+                'ideal' => $ideal,
+                'remaining' => $data['actual_line'][$index] ?? null,
+            ];
+        }
+
+        return $chartData;
     }
 
-    #[Computed]
     #[Computed]
     public function stats(): array
     {
@@ -119,21 +133,21 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
                     x-data="{
                         data: @js($this->velocityData),
                         get maxPoints() {
-                            return Math.max(...this.data.map(d => d.points || d.story_points || 0), 1);
+                            return Math.max(...this.data.map(d => d.completed_points || 0), 1);
                         }
                     }"
                     class="space-y-3"
                 >
                     <template x-for="(item, index) in data" :key="index">
                         <div class="flex items-center gap-3">
-                            <span class="text-xs text-zinc-500 w-24 truncate" x-text="item.sprint_name || item.name || ('Sprint ' + (index + 1))"></span>
+                            <span class="text-xs text-zinc-500 w-24 truncate" x-text="item.name || ('Sprint ' + (index + 1))"></span>
                             <div class="flex-1 h-6 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                                 <div
                                     class="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                                    :style="'width: ' + ((item.points || item.story_points || 0) / maxPoints * 100) + '%'"
+                                    :style="'width: ' + ((item.completed_points || 0) / maxPoints * 100) + '%'"
                                 ></div>
                             </div>
-                            <span class="text-sm font-medium w-12 text-right" x-text="(item.points || item.story_points || 0) + ' SP'"></span>
+                            <span class="text-sm font-medium w-12 text-right" x-text="(item.completed_points || 0) + ' SP'"></span>
                         </div>
                     </template>
                 </div>

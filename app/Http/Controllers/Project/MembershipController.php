@@ -21,18 +21,22 @@ class MembershipController extends Controller
 
     public function index(Project $project): AnonymousResourceCollection
     {
-        $members = $project->memberships()->with('user')->get();
+        $members = $this->service->getProjectMembers($project);
 
         return MemberResource::collection($members);
     }
 
     public function store(AddMemberRequest $request, Project $project): JsonResponse
     {
-        $user = User::where('email', $request->validated('email'))->firstOrFail();
         $role = ProjectRole::from($request->validated('role'));
 
         try {
-            $membership = $this->service->add($project, $user, $role, $request->user());
+            $membership = $this->service->addByEmail(
+                $project,
+                $request->validated('email'),
+                $role,
+                $request->user()
+            );
         } catch (\App\Exceptions\MaxMembersExceededException $e) {
             return response()->json(['message' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\App\Exceptions\DuplicateMemberException $e) {
@@ -48,9 +52,7 @@ class MembershipController extends Controller
     {
         $this->authorize('removeMember', $project);
 
-        $user = User::findOrFail($userId);
-
-        $this->service->remove($project, $user, request()->user());
+        $this->service->removeById($project, $userId, request()->user());
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }

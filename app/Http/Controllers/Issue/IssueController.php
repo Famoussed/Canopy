@@ -24,30 +24,7 @@ class IssueController extends Controller
 
     public function index(Request $request, Project $project): AnonymousResourceCollection
     {
-        $query = $project->issues()->with(['creator', 'assignee']);
-
-        if ($request->has('type')) {
-            $query->where('type', $request->string('type'));
-        }
-
-        if ($request->has('priority')) {
-            $query->where('priority', $request->string('priority'));
-        }
-
-        if ($request->has('severity')) {
-            $query->where('severity', $request->string('severity'));
-        }
-
-        if ($request->has('status')) {
-            $statuses = explode(',', $request->string('status')->toString());
-            $query->whereIn('status', $statuses);
-        }
-
-        if ($request->string('assigned_to') === 'me') {
-            $query->where('assigned_to', $request->user()->id);
-        }
-
-        $issues = $query->latest()->paginate($request->integer('per_page', 20));
+        $issues = $this->service->list($project, $request->all());
 
         return IssueResource::collection($issues);
     }
@@ -63,7 +40,7 @@ class IssueController extends Controller
 
     public function show(Project $project, Issue $issue): IssueResource
     {
-        return new IssueResource($issue->load(['creator', 'assignee', 'attachments']));
+        return new IssueResource($this->service->getIssueDetails($issue));
     }
 
     public function update(UpdateIssueRequest $request, Project $project, Issue $issue): IssueResource

@@ -20,19 +20,10 @@ class AttachmentController extends Controller
 
     public function store(UploadAttachmentRequest $request): AttachmentResource
     {
-        $modelMap = [
-            'user_story' => \App\Models\UserStory::class,
-            'task' => \App\Models\Task::class,
-            'issue' => \App\Models\Issue::class,
-        ];
-
-        $model = $modelMap[$request->validated('attachable_type')]::findOrFail(
-            $request->validated('attachable_id')
-        );
-
-        $attachment = $this->service->upload(
+        $attachment = $this->service->uploadToTarget(
+            $request->validated('attachable_type'),
+            $request->validated('attachable_id'),
             $request->file('file'),
-            $model,
             $request->user()
         );
 

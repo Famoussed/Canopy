@@ -25,7 +25,7 @@ class TaskController extends Controller
 
     public function index(UserStory $story): AnonymousResourceCollection
     {
-        return TaskResource::collection($story->tasks()->with('assignee')->get());
+        return TaskResource::collection($this->service->listByStory($story));
     }
 
     public function store(CreateTaskRequest $request, UserStory $story): JsonResponse
@@ -46,7 +46,7 @@ class TaskController extends Controller
 
     public function changeStatus(ChangeStatusRequest $request, Task $task): TaskResource
     {
-        $task->loadMissing('userStory.project');
+        // Service handles loading
         $this->authorize('changeStatus', $task);
 
         $newStatus = TaskStatus::from($request->validated('status'));
@@ -58,16 +58,18 @@ class TaskController extends Controller
 
     public function assign(AssignTaskRequest $request, Task $task): TaskResource
     {
-        $assignee = User::findOrFail($request->validated('assigned_to'));
-
-        $task = $this->service->assign($task, $assignee, $request->user());
+        $task = $this->service->assignById(
+            $task,
+            $request->validated('assigned_to'),
+            $request->user()
+        );
 
         return new TaskResource($task);
     }
 
     public function destroy(Task $task): JsonResponse
     {
-        $task->loadMissing('userStory.project');
+        // Service or model binding handles logic
         $this->authorize('delete', $task);
 
         $this->service->delete($task);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Analytics;
 
 use App\Models\Sprint;
+use App\Services\BurndownService;
 
 class SnapshotDailyBurndownAction
 {
@@ -19,8 +20,7 @@ class SnapshotDailyBurndownAction
         }
 
         // Burndown verisini hesapla ve cache'e kaydet
-        $burndownAction = app(CalculateBurndownAction::class);
-        $data = $burndownAction->execute($sprint);
+        $data = app(BurndownService::class)->getBurndownData($sprint);
 
         cache()->put(
             "burndown.{$sprint->id}.".now()->toDateString(),

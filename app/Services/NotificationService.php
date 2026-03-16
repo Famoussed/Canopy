@@ -29,4 +29,17 @@ class NotificationService
     {
         $user->notifications()->unread()->update(['read_at' => now()]);
     }
+
+    public function getUnreadNotifications(User $user): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        return $user->notifications()
+            ->unread()
+            ->latest()
+            ->paginate(20);
+    }
+
+    public function getUnreadCount(User $user): int
+    {
+        return $user->notifications()->unread()->count();
+    }
 }

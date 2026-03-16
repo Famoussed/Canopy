@@ -21,14 +21,11 @@ class NotificationController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $notifications = $request->user()
-            ->notifications()
-            ->unread()
-            ->latest()
-            ->paginate(20);
+        $notifications = $this->service->getUnreadNotifications($request->user());
+        $unreadCount = $this->service->getUnreadCount($request->user());
 
         return NotificationResource::collection($notifications)
-            ->additional(['meta' => ['unread_count' => $request->user()->notifications()->unread()->count()]]);
+            ->additional(['meta' => ['unread_count' => $unreadCount]]);
     }
 
     public function markRead(MarkNotificationReadRequest $request): JsonResponse

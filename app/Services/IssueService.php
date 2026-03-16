@@ -66,4 +66,37 @@ class IssueService
 
         return $issue;
     }
+
+    public function list(Project $project, array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = $project->issues()->with(['creator', 'assignee']);
+
+        if (filled($filters['type'] ?? null)) {
+            $query->where('type', $filters['type']);
+        }
+
+        if (filled($filters['priority'] ?? null)) {
+            $query->where('priority', $filters['priority']);
+        }
+
+        if (filled($filters['severity'] ?? null)) {
+            $query->where('severity', $filters['severity']);
+        }
+
+        if (filled($filters['status'] ?? null)) {
+            $statuses = explode(',', $filters['status']);
+            $query->whereIn('status', $statuses);
+        }
+
+        if (($filters['assigned_to'] ?? null) === 'me') {
+            $query->where('assigned_to', auth()->id());
+        }
+
+        return $query->latest()->paginate($filters['per_page'] ?? 20);
+    }
+
+    public function getIssueDetails(Issue $issue): Issue
+    {
+        return $issue->load(['creator', 'assignee', 'attachments']);
+    }
 }

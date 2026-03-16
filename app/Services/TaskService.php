@@ -76,4 +76,21 @@ class TaskService
 
         return $task;
     }
+
+    public function listByStory(UserStory $story): \Illuminate\Database\Eloquent\Collection
+    {
+        return $story->tasks()->with('assignee')->get();
+    }
+
+    public function assignById(Task $task, string $assigneeId, User $assignedBy): Task
+    {
+        $assignee = User::findOrFail($assigneeId);
+
+        return $this->assign($task, $assignee, $assignedBy);
+    }
+
+    public function getTaskDetails(Task $task): Task
+    {
+        return $task->loadMissing('userStory.project');
+    }
 }

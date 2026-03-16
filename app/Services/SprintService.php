@@ -22,6 +22,19 @@ class SprintService
         private readonly CloseSprintAction $closeAction,
     ) {}
 
+    public function listByProject(Project $project, int $perPage = 20)
+    {
+        return $project->sprints()
+            ->withCount('userStories')
+            ->latest()
+            ->paginate($perPage);
+    }
+
+    public function getSprintDetails(Sprint $sprint): Sprint
+    {
+        return $sprint->load('userStories');
+    }
+
     public function create(array $data, Project $project): Sprint
     {
         return $project->sprints()->create([

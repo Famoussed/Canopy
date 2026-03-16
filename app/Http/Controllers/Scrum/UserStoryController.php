@@ -28,26 +28,7 @@ class UserStoryController extends Controller
 
     public function index(Request $request, Project $project): AnonymousResourceCollection
     {
-        $query = $project->userStories()->with(['epic', 'creator']);
-
-        if ($request->boolean('backlog')) {
-            $query->backlog();
-        }
-
-        if ($request->has('sprint_id')) {
-            $query->where('sprint_id', $request->string('sprint_id'));
-        }
-
-        if ($request->has('epic_id')) {
-            $query->where('epic_id', $request->string('epic_id'));
-        }
-
-        if ($request->has('status')) {
-            $statuses = explode(',', $request->string('status')->toString());
-            $query->whereIn('status', $statuses);
-        }
-
-        $stories = $query->orderBy('order')->paginate($request->integer('per_page', 50));
+        $stories = $this->service->list($project, $request->all());
 
         return UserStoryResource::collection($stories);
     }
@@ -63,7 +44,7 @@ class UserStoryController extends Controller
 
     public function show(Project $project, UserStory $story): UserStoryResource
     {
-        return new UserStoryResource($story->load(['tasks', 'storyPoints', 'epic', 'creator', 'attachments']));
+        return new UserStoryResource($this->service->getStoryDetails($story));
     }
 
     public function update(UpdateUserStoryRequest $request, Project $project, UserStory $story): UserStoryResource
@@ -93,9 +74,11 @@ class UserStoryController extends Controller
 
     public function moveToSprint(MoveToSprintRequest $request, Project $project, UserStory $story): UserStoryResource
     {
-        $sprint = Sprint::findOrFail($request->validated('sprint_id'));
-
-        $story = $this->service->moveToSprint($story, $sprint, $request->user());
+        $story = $this->service->moveToSprintById(
+            $story,
+            $request->validated('sprint_id'),
+            $request->user()
+        );
 
         return new UserStoryResource($story);
     }

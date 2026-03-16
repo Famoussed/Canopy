@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Analytics;
 
-use App\Actions\Analytics\CalculateBurndownAction;
 use App\Actions\Analytics\CalculateVelocityAction;
 use App\Actions\Analytics\SnapshotDailyBurndownAction;
 use App\Enums\ProjectRole;
@@ -14,6 +13,7 @@ use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\User;
 use App\Models\UserStory;
+use App\Services\BurndownService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -93,7 +93,7 @@ class AnalyticsCalculationTest extends TestCase
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // CalculateBurndownAction
+    // BurndownService Calculation
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_burndown_returns_correct_structure(): void
@@ -104,7 +104,7 @@ class AnalyticsCalculationTest extends TestCase
             'end_date' => now()->addDays(4),
         ]);
 
-        $data = app(CalculateBurndownAction::class)->execute($sprint);
+        $data = app(BurndownService::class)->getBurndownData($sprint);
 
         $this->assertArrayHasKey('sprint', $data);
         $this->assertArrayHasKey('total_points', $data);
@@ -128,7 +128,7 @@ class AnalyticsCalculationTest extends TestCase
             'status' => StoryStatus::New,
         ]);
 
-        $data = app(CalculateBurndownAction::class)->execute($sprint);
+        $data = app(BurndownService::class)->getBurndownData($sprint);
 
         $this->assertEquals(20.0, $data['total_points']);
         $this->assertEquals(20, $data['ideal_line'][0]);
@@ -159,7 +159,7 @@ class AnalyticsCalculationTest extends TestCase
             'status' => StoryStatus::New,
         ]);
 
-        $data = app(CalculateBurndownAction::class)->execute($sprint);
+        $data = app(BurndownService::class)->getBurndownData($sprint);
 
         // total = 15, one 10-pt story done = 5 remaining today
         $this->assertEquals(15.0, $data['total_points']);

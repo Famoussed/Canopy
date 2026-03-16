@@ -16,7 +16,7 @@ class AddMemberAction
     private const int MAX_MEMBERS = 5;
 
     /**
-     * BR-11: Maksimum 5 üye kontrolü.
+     * BR-11: Maksimum 5 üye kontrolü.  
      * BR-12: Tekil üyelik kontrolü.
      *
      * @throws DuplicateMemberException

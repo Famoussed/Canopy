@@ -66,4 +66,23 @@ class MembershipService
             $this->transferAction->execute($project, $newOwner, $currentOwner);
         });
     }
+
+    public function getProjectMembers(Project $project): \Illuminate\Database\Eloquent\Collection
+    {
+        return $project->memberships()->with('user')->get();
+    }
+
+    public function addByEmail(Project $project, string $email, ProjectRole $role, User $addedBy): ProjectMembership
+    {
+        $user = User::where('email', $email)->firstOrFail();
+
+        return $this->add($project, $user, $role, $addedBy);
+    }
+
+    public function removeById(Project $project, string $userId, User $removedBy): void
+    {
+        $user = User::findOrFail($userId);
+
+        $this->remove($project, $user, $removedBy);
+    }
 }
