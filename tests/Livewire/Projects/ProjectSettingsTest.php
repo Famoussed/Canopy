@@ -119,7 +119,7 @@ class ProjectSettingsTest extends TestCase
 
         Livewire::actingAs($this->owner)
             ->test('projects.project-settings', ['project' => $this->project])
-            ->call('changeRole', $membership->id, 'moderator');
+            ->call('changeRole', $membership->user_id, 'moderator');
 
         $this->assertEquals(
             ProjectRole::Moderator->value,
@@ -137,7 +137,7 @@ class ProjectSettingsTest extends TestCase
 
         Livewire::actingAs($this->owner)
             ->test('projects.project-settings', ['project' => $this->project])
-            ->call('removeMember', $membership->id);
+            ->call('removeMember', $membership->user_id);
 
         $this->assertDatabaseMissing('project_memberships', [
             'id' => $membership->id,

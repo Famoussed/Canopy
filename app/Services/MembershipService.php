@@ -60,6 +60,13 @@ class MembershipService
         return $membership->fresh();
     }
 
+    public function changeRoleByUserId(Project $project, string $userId, ProjectRole $newRole): ProjectMembership
+    {
+        $user = User::findOrFail($userId);
+
+        return $this->changeRole($project, $user, $newRole);
+    }
+
     public function transferOwnership(Project $project, User $newOwner, User $currentOwner): void
     {
         DB::transaction(function () use ($project, $newOwner, $currentOwner) {
@@ -69,7 +76,15 @@ class MembershipService
 
     public function getProjectMembers(Project $project): \Illuminate\Database\Eloquent\Collection
     {
-        return $project->memberships()->with('user')->get();
+        return $project->memberships()
+            ->with('user')
+            ->get()
+            ->sortBy(fn ($membership) => match ($membership->role) {
+                ProjectRole::Owner => 0,
+                ProjectRole::Moderator => 1,
+                default => 2,
+            })
+            ->values();
     }
 
     public function addByEmail(Project $project, string $email, ProjectRole $role, User $addedBy): ProjectMembership

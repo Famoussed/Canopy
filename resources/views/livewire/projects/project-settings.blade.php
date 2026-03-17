@@ -67,27 +67,10 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
             'newMemberRole' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\ProjectRole::class)],
         ]);
 
-        $user = User::where('email', $this->newMemberEmail)->first();
-
-        if (! $user) {
-            $this->addError('newMemberEmail', 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.');
-
-            return;
-        }
-
-        // Check if already a member
-        $existing = $this->project->memberships()->where('user_id', $user->id)->exists();
-
-        if ($existing) {
-            $this->addError('newMemberEmail', 'Bu kullanıcı zaten üye.');
-
-            return;
-        }
-
         try {
-            $service->add(
+            $service->addByEmail(
                 $this->project,
-                $user,
+                $this->newMemberEmail,
                 ProjectRole::from($this->newMemberRole),
                 auth()->user(),
             );
@@ -95,6 +78,8 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
             $this->reset(['newMemberEmail', 'newMemberRole', 'showAddMember']);
             $this->newMemberRole = 'member';
             $this->project->refresh();
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            $this->addError('newMemberEmail', 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.');
         } catch (\App\Exceptions\DuplicateMemberException) {
             $this->addError('newMemberEmail', 'Bu kullanıcı zaten üye.');
         } catch (\App\Exceptions\MaxMembersExceededException $e) {
@@ -102,28 +87,22 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         }
     }
 
-    public function changeRole(string $membershipId, string $role, \App\Services\MembershipService $service): void
+    public function changeRole(string $userId, string $role, \App\Services\MembershipService $service): void
     {
-        $membership = $this->project->memberships()->findOrFail($membershipId);
-        $user = $membership->user;
-
-        $service->changeRole(
+        $service->changeRoleByUserId(
             $this->project,
-            $user,
+            $userId,
             ProjectRole::from($role),
         );
 
         $this->project->refresh();
     }
 
-    public function removeMember(string $membershipId, \App\Services\MembershipService $service): void
+    public function removeMember(string $userId, \App\Services\MembershipService $service): void
     {
-        $membership = $this->project->memberships()->findOrFail($membershipId);
-        $user = $membership->user;
-
-        $service->remove(
+        $service->removeById(
             $this->project,
-            $user,
+            $userId,
             auth()->user(),
         );
 
@@ -139,10 +118,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
     #[Computed]
     public function members(): mixed
     {
-        return $this->project->memberships()
-            ->with('user')
-            ->orderByRaw("CASE WHEN role = 'owner' THEN 0 WHEN role = 'moderator' THEN 1 ELSE 2 END")
-            ->get();
+        return app(MembershipService::class)->getProjectMembers($this->project);
     }
 }
 
@@ -208,12 +184,12 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
                             <flux:button variant="ghost" size="sm" icon="ellipsis-vertical" />
                             <flux:menu>
                                 @if ($membership->role === ProjectRole::Member)
-                                    <flux:menu.item icon="arrow-up" wire:click="changeRole('{{ $membership->id }}', 'moderator')">Moderatör Yap</flux:menu.item>
+                                    <flux:menu.item icon="arrow-up" wire:click="changeRole('{{ $membership->user_id }}', 'moderator')">Moderatör Yap</flux:menu.item>
                                 @else
-                                    <flux:menu.item icon="arrow-down" wire:click="changeRole('{{ $membership->id }}', 'member')">Üye Yap</flux:menu.item>
+                                    <flux:menu.item icon="arrow-down" wire:click="changeRole('{{ $membership->user_id }}', 'member')">Üye Yap</flux:menu.item>
                                 @endif
                                 <flux:menu.separator />
-                                <flux:menu.item icon="trash" variant="danger" wire:click="removeMember('{{ $membership->id }}')" wire:confirm="Bu üyeyi projeden çıkarmak istediğinize emin misiniz?">Çıkar</flux:menu.item>
+                                <flux:menu.item icon="trash" variant="danger" wire:click="removeMember('{{ $membership->user_id }}')" wire:confirm="Bu üyeyi projeden çıkarmak istediğinize emin misiniz?">Çıkar</flux:menu.item>
                             </flux:menu>
                         </flux:dropdown>
                     @endif

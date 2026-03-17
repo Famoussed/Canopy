@@ -93,4 +93,16 @@ class TaskService
     {
         return $task->loadMissing('userStory.project');
     }
+
+    public function findById(string $id): Task
+    {
+        return Task::findOrFail($id);
+    }
+
+    public function unassign(Task $task): Task
+    {
+        $task->update(['assigned_to' => null]);
+        
+        return $task->fresh();
+    }
 }

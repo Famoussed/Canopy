@@ -159,7 +159,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
 
     public function assignTask(string $taskId, string $userId, \App\Services\TaskService $service): void
     {
-        $task = \App\Models\Task::findOrFail($taskId);
+        $task = $service->findById($taskId);
 
         try {
             $this->authorize('assign', $task);
@@ -170,20 +170,19 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
 
         if ($userId === '') {
-            $task->update(['assigned_to' => null]);
+            $service->unassign($task);
             $this->story->refresh();
 
             return;
         }
 
-        $assignee = \App\Models\User::findOrFail($userId);
-        $service->assign($task, $assignee, auth()->user());
+        $service->assignById($task, $userId, auth()->user());
         $this->story->refresh();
     }
 
     public function changeTaskStatus(string $taskId, string $newStatus, \App\Services\TaskService $service): void
     {
-        $task = \App\Models\Task::findOrFail($taskId);
+        $task = $service->findById($taskId);
         $status = TaskStatus::from($newStatus);
 
         try {
@@ -199,7 +198,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
 
     public function toggleTaskStatus(string $taskId, TaskService $service): void
     {
-        $task = \App\Models\Task::findOrFail($taskId);
+        $task = $service->findById($taskId);
         $newStatus = $task->status->value === 'done'
             ? TaskStatus::InProgress
             : TaskStatus::Done;

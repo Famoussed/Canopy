@@ -121,9 +121,14 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
     {
         return $this->project->sprints()
             ->withCount('userStories')
-            ->orderByRaw("CASE WHEN status = 'active' THEN 0 WHEN status = 'planning' THEN 1 ELSE 2 END")
             ->orderBy('start_date', 'desc')
-            ->get();
+            ->get()
+            ->sortBy(fn ($sprint) => match ($sprint->status) {
+                SprintStatus::Active => 0,
+                SprintStatus::Planning => 1,
+                default => 2,
+            })
+            ->values();
     }
 }
 
