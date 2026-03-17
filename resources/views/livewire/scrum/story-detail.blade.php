@@ -60,7 +60,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
     }
 
-    public function saveEstimation(): void
+    public function saveEstimation(\App\Services\UserStoryService $service): void
     {
         $this->authorize('estimate', $this->story);
 
@@ -70,7 +70,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             ->values()
             ->toArray();
 
-        app(UserStoryService::class)->estimate($this->story, $points);
+        $service->estimate($this->story, $points);
         $this->story->refresh();
         $this->story->load('storyPoints');
     }
@@ -90,11 +90,11 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             ->pluck('user');
     }
 
-    public function saveTitle(): void
+    public function saveTitle(\App\Services\UserStoryService $service): void
     {
         $this->validate(['editTitle' => 'required|string|max:255']);
 
-        app(UserStoryService::class)->update($this->story, [
+        $service->update($this->story, [
             'title' => $this->editTitle,
         ]);
 
@@ -102,19 +102,19 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         $this->editingTitle = false;
     }
 
-    public function saveDescription(): void
+    public function saveDescription(\App\Services\UserStoryService $service): void
     {
-        app(UserStoryService::class)->update($this->story, [
+        $service->update($this->story, [
             'description' => $this->editDescription,
         ]);
 
         $this->story->refresh();
     }
 
-    public function changeStatus(string $newStatus): void
+    public function changeStatus(string $newStatus, \App\Services\UserStoryService $service): void
     {
         try {
-            app(UserStoryService::class)->changeStatus(
+            $service->changeStatus(
                 $this->story,
                 \App\Enums\StoryStatus::from($newStatus),
                 auth()->user(),
@@ -125,7 +125,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
     }
 
-    public function createTask(): void
+    public function createTask(TaskService $service): void
     {
         $this->validate(['newTaskTitle' => 'required|string|max:255']);
 
@@ -137,7 +137,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             return;
         }
 
-        app(TaskService::class)->create([
+        $service->create([
             'title' => $this->newTaskTitle,
         ], $this->story, auth()->user());
 
@@ -146,18 +146,18 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         $this->story->refresh();
     }
 
-    public function updateEpic(): void
+    public function updateEpic(UserStoryService $service): void
     {
         $epicId = $this->selectedEpicId ?: null;
 
-        app(UserStoryService::class)->update($this->story, [
+        $service->update($this->story, [
             'epic_id' => $epicId,
         ]);
 
         $this->story->refresh();
     }
 
-    public function assignTask(string $taskId, string $userId): void
+    public function assignTask(string $taskId, string $userId, \App\Services\TaskService $service): void
     {
         $task = \App\Models\Task::findOrFail($taskId);
 
@@ -177,18 +177,18 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
 
         $assignee = \App\Models\User::findOrFail($userId);
-        app(TaskService::class)->assign($task, $assignee, auth()->user());
+        $service->assign($task, $assignee, auth()->user());
         $this->story->refresh();
     }
 
-    public function changeTaskStatus(string $taskId, string $newStatus): void
+    public function changeTaskStatus(string $taskId, string $newStatus, \App\Services\TaskService $service): void
     {
         $task = \App\Models\Task::findOrFail($taskId);
         $status = TaskStatus::from($newStatus);
 
         try {
             $this->authorize('changeStatus', $task);
-            app(TaskService::class)->changeStatus($task, $status, auth()->user());
+            $service->changeStatus($task, $status, auth()->user());
             $this->story->refresh();
         } catch (\Illuminate\Auth\Access\AuthorizationException) {
             session()->flash('error', 'Bu task\'\u0131n durumunu değiştirme yetkiniz yok.');
@@ -197,7 +197,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
     }
 
-    public function toggleTaskStatus(string $taskId): void
+    public function toggleTaskStatus(string $taskId, TaskService $service): void
     {
         $task = \App\Models\Task::findOrFail($taskId);
         $newStatus = $task->status->value === 'done'
@@ -206,7 +206,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
 
         try {
             $this->authorize('changeStatus', $task);
-            app(TaskService::class)->changeStatus($task, $newStatus, auth()->user());
+            $service->changeStatus($task, $newStatus, auth()->user());
             $this->story->refresh();
         } catch (\Illuminate\Auth\Access\AuthorizationException) {
             session()->flash('error', 'Bu task\'\u0131n durumunu değiştirme yetkiniz yok.');

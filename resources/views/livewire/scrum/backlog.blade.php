@@ -38,13 +38,13 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
         unset($this->stories, $this->sprints);
     }
 
-    public function createStory(): void
+    public function createStory(UserStoryService $service): void
     {
         $this->validate([
             'newStoryTitle' => ['required', 'string', 'max:255'],
         ]);
 
-        app(UserStoryService::class)->create([
+        $service->create([
             'title' => $this->newStoryTitle,
         ], $this->project, auth()->user());
 
@@ -52,17 +52,17 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
         $this->showCreateForm = false;
     }
 
-    public function moveToSprint(string $storyId, string $sprintId): void
+    public function moveToSprint(string $storyId, string $sprintId, UserStoryService $service): void
     {
         $story = UserStory::findOrFail($storyId);
         $sprint = \App\Models\Sprint::findOrFail($sprintId);
 
-        app(UserStoryService::class)->moveToSprint($story, $sprint, auth()->user());
+        $service->moveToSprint($story, $sprint, auth()->user());
     }
 
-    public function reorder(array $orderedIds): void
+    public function reorder(array $orderedIds, UserStoryService $service): void
     {
-        app(UserStoryService::class)->reorder($this->project, $orderedIds);
+        $service->reorder($this->project, $orderedIds);
     }
 
     #[Computed]

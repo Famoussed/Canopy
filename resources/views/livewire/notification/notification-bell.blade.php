@@ -15,9 +15,7 @@ new class extends Component {
     {
         $this->userId = auth()->id();
 
-        $this->unreadCount = Notification::where('user_id', auth()->id())
-            ->unread()
-            ->count();
+        $this->unreadCount = auth()->user()->notifications()->unread()->count();
     }
 
     /** @return array<string, string> */
@@ -46,31 +44,23 @@ new class extends Component {
     #[Computed]
     public function notifications(): \Illuminate\Support\Collection
     {
-        return Notification::where('user_id', auth()->id())
+        return auth()->user()->notifications()
             ->latest()
             ->limit(20)
             ->get();
     }
 
-    public function markAsRead(string $notificationId): void
+    public function markAsRead(string $notificationId, \App\Services\NotificationService $notificationService): void
     {
-        $notification = Notification::where('user_id', auth()->id())
-            ->where('id', $notificationId)
-            ->whereNull('read_at')
-            ->first();
-
-        if ($notification) {
-            $notification->markAsRead();
-            $this->unreadCount = max(0, $this->unreadCount - 1);
-            unset($this->notifications);
-        }
+        $notificationService->markAsRead($notificationId, auth()->user());
+        
+        $this->unreadCount = max(0, $this->unreadCount - 1);
+        unset($this->notifications);
     }
 
-    public function markAllAsRead(): void
+    public function markAllAsRead(\App\Services\NotificationService $notificationService): void
     {
-        Notification::where('user_id', auth()->id())
-            ->unread()
-            ->update(['read_at' => now()]);
+        $notificationService->markAllAsRead(auth()->user());
 
         $this->unreadCount = 0;
         unset($this->notifications);

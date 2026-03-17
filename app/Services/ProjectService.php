@@ -40,6 +40,7 @@ class ProjectService
         return $project->fresh();
     }
 
+
     public function listForUser(string $userId, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         return Project::forUser($userId)
@@ -57,5 +58,25 @@ class ProjectService
     {
         // BR-15: Soft delete
         $project->delete();
+    }
+
+    public function getProjectStats(Project $project): array
+    {
+        return [
+            "total_stories" => $project->userStories()->count(),
+            "completed_stories" => $project->userStories()->where('status', \App\Enums\StoryStatus::Done->value)->count(),
+            "total_issues" => $project->issues()->count(),
+            "open_issues" => $project->issues()->where('status', '!=', \App\Enums\IssueStatus::Done->value)->count(),
+            "closed_sprints" => $project->sprints()->closed()->count(),
+        ];
+    }
+
+    public function getProjectStoryStatusCounts(Project $project): array
+    {
+        return $project->userStories()
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
     }
 }

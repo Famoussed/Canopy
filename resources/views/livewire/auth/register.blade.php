@@ -24,11 +24,11 @@ new #[Layout('components.layouts.guest')] #[Title('Kayıt Ol — Canopy')] class
         ];
     }
 
-    public function register(): void
+    public function register(AuthService $service): void
     {
         $this->validate();
 
-        $user = app(AuthService::class)->register([
+        $user = $service->register([
             'name' => $this->name,
             'email' => $this->email,
             'password' => $this->password,

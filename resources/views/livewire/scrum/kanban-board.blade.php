@@ -45,12 +45,12 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
         unset($this->sprint, $this->columns, $this->sprints);
     }
 
-    public function changeTaskStatus(string $taskId, string $newStatus): void
+    public function changeTaskStatus(string $taskId, string $newStatus, \App\Services\TaskService $taskService): void
     {
         $task = \App\Models\Task::findOrFail($taskId);
 
         try {
-            app(TaskService::class)->changeStatus($task, TaskStatus::from($newStatus), auth()->user());
+            $taskService->changeStatus($task, TaskStatus::from($newStatus), auth()->user());
         } catch (\App\Exceptions\TaskNotAssignedException $e) {
             session()->flash('error', 'Task önce birine atanmalı.');
         } catch (\App\Exceptions\InvalidStatusTransitionException $e) {
@@ -58,12 +58,12 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
         }
     }
 
-    public function changeStoryStatus(string $storyId, string $newStatus): void
+    public function changeStoryStatus(string $storyId, string $newStatus, \App\Services\UserStoryService $storyService): void
     {
         $story = \App\Models\UserStory::findOrFail($storyId);
 
         try {
-            app(UserStoryService::class)->changeStatus($story, StoryStatus::from($newStatus), auth()->user());
+            $storyService->changeStatus($story, StoryStatus::from($newStatus), auth()->user());
         } catch (\App\Exceptions\InvalidStatusTransitionException $e) {
             session()->flash('error', 'Geçersiz durum geçişi.');
         }

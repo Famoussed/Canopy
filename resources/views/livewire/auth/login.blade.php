@@ -20,12 +20,12 @@ new #[Layout('components.layouts.guest')] #[Title('Giriş Yap — Canopy')] clas
         ];
     }
 
-    public function login(): void
+    public function login(AuthService $service): void
     {
         $this->validate();
 
         try {
-            app(AuthService::class)->login([
+            $service->login([
                 'email' => $this->email,
                 'password' => $this->password,
             ]);

@@ -46,7 +46,7 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
         unset($this->epics);
     }
 
-    public function createEpic(): void
+    public function createEpic(EpicService $service): void
     {
         $this->validate([
             'title' => 'required|string|max:255',
@@ -54,7 +54,7 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
             'color' => 'required|string|max:7',
         ]);
 
-        app(EpicService::class)->create([
+        $service->create([
             'title' => $this->title,
             'description' => $this->description,
             'color' => $this->color,
@@ -73,7 +73,7 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
         $this->editColor = $epic->color ?? '#6366F1';
     }
 
-    public function updateEpic(): void
+    public function updateEpic(EpicService $service): void
     {
         $this->validate([
             'editTitle' => 'required|string|max:255',
@@ -82,7 +82,7 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
         ]);
 
         $epic = Epic::findOrFail($this->editingEpicId);
-        app(EpicService::class)->update($epic, [
+        $service->update($epic, [
             'title' => $this->editTitle,
             'description' => $this->editDescription,
             'color' => $this->editColor,
@@ -91,10 +91,10 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
         $this->editingEpicId = null;
     }
 
-    public function deleteEpic(string $epicId): void
+    public function deleteEpic(string $epicId, EpicService $service): void
     {
         $epic = Epic::findOrFail($epicId);
-        app(EpicService::class)->delete($epic);
+        $service->delete($epic);
     }
 
     #[Computed]

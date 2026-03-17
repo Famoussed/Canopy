@@ -19,11 +19,11 @@ new #[Layout('components.layouts.app')] #[Title('Yeni Proje — Canopy')] class 
         ];
     }
 
-    public function create(): void
+    public function create(ProjectService $service): void
     {
         $this->validate();
 
-        $project = app(ProjectService::class)->create([
+        $project = $service->create([
             'name' => $this->name,
             'description' => $this->description,
         ], auth()->user());

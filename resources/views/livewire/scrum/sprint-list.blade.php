@@ -49,7 +49,7 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
         unset($this->sprints);
     }
 
-    public function createSprint(): void
+    public function createSprint(SprintService $service): void
     {
         $this->validate([
             'name' => 'required|string|max:255',
@@ -57,7 +57,7 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
             'endDate' => 'required|date|after:startDate',
         ]);
 
-        app(SprintService::class)->create([
+        $service->create([
             'name' => $this->name,
             'start_date' => $this->startDate,
             'end_date' => $this->endDate,
@@ -75,7 +75,7 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
         $this->editEndDate = $sprint->end_date->format('Y-m-d');
     }
 
-    public function updateSprint(): void
+    public function updateSprint(SprintService $service): void
     {
         $this->validate([
             'editName' => 'required|string|max:255',
@@ -84,7 +84,7 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
         ]);
 
         $sprint = Sprint::findOrFail($this->editingSprintId);
-        app(SprintService::class)->update($sprint, [
+        $service->update($sprint, [
             'name' => $this->editName,
             'start_date' => $this->editStartDate,
             'end_date' => $this->editEndDate,
@@ -93,27 +93,27 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
         $this->editingSprintId = null;
     }
 
-    public function startSprint(string $sprintId): void
+    public function startSprint(string $sprintId, SprintService $service): void
     {
         $sprint = Sprint::findOrFail($sprintId);
 
         try {
-            app(SprintService::class)->start($sprint, auth()->user());
+            $service->start($sprint, auth()->user());
         } catch (ActiveSprintAlreadyExistsException) {
             session()->flash('error', 'Zaten aktif bir sprint bulunuyor. Önce mevcut sprint\'i kapatın.');
         }
     }
 
-    public function closeSprint(string $sprintId): void
+    public function closeSprint(string $sprintId, SprintService $service): void
     {
         $sprint = Sprint::findOrFail($sprintId);
-        app(SprintService::class)->close($sprint, auth()->user());
+        $service->close($sprint, auth()->user());
     }
 
-    public function deleteSprint(string $sprintId): void
+    public function deleteSprint(string $sprintId, SprintService $service): void
     {
         $sprint = Sprint::findOrFail($sprintId);
-        app(SprintService::class)->delete($sprint);
+        $service->delete($sprint);
     }
 
     #[Computed]

@@ -44,14 +44,14 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         $this->project->refresh();
     }
 
-    public function saveProject(): void
+    public function saveProject(\App\Services\ProjectService $service): void
     {
         $this->validate([
             'projectName' => 'required|string|max:255',
             'projectDescription' => 'nullable|string|max:1000',
         ]);
 
-        app(ProjectService::class)->update($this->project, [
+        $service->update($this->project, [
             'name' => $this->projectName,
             'description' => $this->projectDescription,
         ]);
@@ -60,11 +60,11 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         session()->flash('success', 'Proje bilgileri güncellendi.');
     }
 
-    public function addMember(): void
+    public function addMember(MembershipService $service): void
     {
         $this->validate([
             'newMemberEmail' => 'required|email',
-            'newMemberRole' => 'required|in:member,moderator',
+            'newMemberRole' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\ProjectRole::class)],
         ]);
 
         $user = User::where('email', $this->newMemberEmail)->first();
@@ -85,7 +85,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         }
 
         try {
-            app(MembershipService::class)->add(
+            $service->add(
                 $this->project,
                 $user,
                 ProjectRole::from($this->newMemberRole),
@@ -102,12 +102,12 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         }
     }
 
-    public function changeRole(string $membershipId, string $role): void
+    public function changeRole(string $membershipId, string $role, \App\Services\MembershipService $service): void
     {
         $membership = $this->project->memberships()->findOrFail($membershipId);
         $user = $membership->user;
 
-        app(MembershipService::class)->changeRole(
+        $service->changeRole(
             $this->project,
             $user,
             ProjectRole::from($role),
@@ -116,12 +116,12 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         $this->project->refresh();
     }
 
-    public function removeMember(string $membershipId): void
+    public function removeMember(string $membershipId, \App\Services\MembershipService $service): void
     {
         $membership = $this->project->memberships()->findOrFail($membershipId);
         $user = $membership->user;
 
-        app(MembershipService::class)->remove(
+        $service->remove(
             $this->project,
             $user,
             auth()->user(),
@@ -130,9 +130,9 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         $this->project->refresh();
     }
 
-    public function deleteProject(): void
+    public function deleteProject(ProjectService $service): void
     {
-        app(ProjectService::class)->delete($this->project);
+        $service->delete($this->project);
         $this->redirect('/dashboard', navigate: true);
     }
 

@@ -19,6 +19,13 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
 
     public Project $project;
 
+    protected \App\Services\IssueService $issueService;
+
+    public function boot(\App\Services\IssueService $issueService)
+    {
+        $this->issueService = $issueService;
+    }
+
     #[Url]
     public string $statusFilter = '';
 
@@ -80,12 +87,12 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
         $this->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'type' => 'required|in:bug,question,enhancement',
-            'priority' => 'required|in:low,normal,high',
-            'severity' => 'required|in:wishlist,minor,critical',
+            'type' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssueType::class)],
+            'priority' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssuePriority::class)],
+            'severity' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssueSeverity::class)],
         ]);
 
-        app(IssueService::class)->create([
+        $this->issueService->create([
             'title' => $this->title,
             'description' => $this->description,
             'type' => $this->type,
@@ -115,10 +122,14 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
     {
         $this->validate([
             'editTitle' => 'required|string|max:255',
+            'editDescription' => 'nullable|string',
+            'editType' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssueType::class)],
+            'editPriority' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssuePriority::class)],
+            'editSeverity' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssueSeverity::class)],
         ]);
 
         $issue = Issue::findOrFail($this->editingIssueId);
-        app(IssueService::class)->update($issue, [
+        $this->issueService->update($issue, [
             'title' => $this->editTitle,
             'description' => $this->editDescription,
             'type' => $this->editType,
@@ -134,7 +145,7 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
         $issue = Issue::findOrFail($issueId);
 
         try {
-            app(IssueService::class)->changeStatus(
+            $this->issueService->changeStatus(
                 $issue,
                 IssueStatus::from($newStatus),
                 auth()->user(),
@@ -148,7 +159,7 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
     {
         $issue = Issue::findOrFail($issueId);
         $this->authorize('delete', $issue);
-        app(IssueService::class)->delete($issue);
+        $this->issueService->delete($issue);
     }
 
     public function assignIssue(string $issueId, string $userId): void
@@ -156,7 +167,7 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
         $issue = Issue::findOrFail($issueId);
         $this->authorize('assign', $issue);
 
-        $issue->update([
+        $this->issueService->update($issue, [
             'assigned_to' => $userId ?: null,
         ]);
 
@@ -166,38 +177,17 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
     #[Computed]
     public function issues(): mixed
     {
-        $query = $this->project->issues()->with(['assignee', 'creator']);
-
-        if ($this->statusFilter) {
-            $query->where('status', $this->statusFilter);
-        }
-        if ($this->typeFilter) {
-            $query->where('type', $this->typeFilter);
-        }
-        if ($this->priorityFilter) {
-            $query->where('priority', $this->priorityFilter);
-        }
-
-        return $query->latest()->paginate(25);
+        return $this->issueService->getFilteredIssues($this->project, [
+            'status' => $this->statusFilter,
+            'type' => $this->typeFilter,
+            'priority' => $this->priorityFilter,
+        ]);
     }
 
     #[Computed]
     public function counts(): array
     {
-        $counts = $this->project->issues()
-            ->selectRaw("
-                COUNT(*) as total,
-                SUM(CASE WHEN status != 'done' THEN 1 ELSE 0 END) as open_count,
-                SUM(CASE WHEN type = 'bug' THEN 1 ELSE 0 END) as bug_count,
-                SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical_count
-            ")->first();
-
-        return [
-            'total' => (int) $counts->total,
-            'open' => (int) $counts->open_count,
-            'bugs' => (int) $counts->bug_count,
-            'critical' => (int) $counts->critical_count,
-        ];
+        return $this->issueService->getProjectIssueCounts($this->project);
     }
 }
 

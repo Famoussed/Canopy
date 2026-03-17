@@ -11,6 +11,17 @@ use Livewire\Component;
 new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class extends Component {
     public Project $project;
 
+    protected \App\Services\ProjectService $projectService;
+    protected \App\Services\VelocityService $velocityService;
+    protected \App\Services\BurndownService $burndownService;
+
+    public function boot(\App\Services\ProjectService $projectService, \App\Services\VelocityService $velocityService, \App\Services\BurndownService $burndownService)
+    {
+        $this->projectService = $projectService;
+        $this->velocityService = $velocityService;
+        $this->burndownService = $burndownService;
+    }
+
     public int $velocitySprintCount = 5;
 
     public function mount(Project $project): void
@@ -43,7 +54,7 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
     #[Computed]
     public function velocityData(): array
     {
-        $data = app(VelocityService::class)->getVelocityData($this->project, $this->velocitySprintCount);
+        $data = $this->velocityService->getVelocityData($this->project, $this->velocitySprintCount);
         return $data['sprints'] ?? [];
     }
 
@@ -54,7 +65,7 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
             return [];
         }
 
-        $data = app(BurndownService::class)->getBurndownData($this->activeSprint);
+        $data = $this->burndownService->getBurndownData($this->activeSprint);
         
         // Transform for JS Chart: Array of { day, ideal, remaining }
         $chartData = [];
@@ -72,22 +83,15 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
     #[Computed]
     public function stats(): array
     {
-        $stories = $this->project->userStories()
-            ->selectRaw("COUNT(*) as total, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed", [\App\Enums\StoryStatus::Done->value])
-            ->first();
+        return $this->projectService->getProjectStats($this->project);
+    }
 
-        $issues = $this->project->issues()
-            ->selectRaw("COUNT(*) as total, SUM(CASE WHEN status != ? THEN 1 ELSE 0 END) as open_count", [\App\Enums\IssueStatus::Done->value])
-            ->first();
-
-        return [
+    /* 
             "total_stories" => (int) $stories->total,
             "completed_stories" => (int) $stories->completed,
             "total_issues" => (int) $issues->total,
             "open_issues" => (int) $issues->open_count,
-            "closed_sprints" => $this->project->sprints()->closed()->count(),
-        ];
-    }
+            */
 
     #[Computed]
     public function totalStories(): int { return $this->stats["total_stories"]; }
@@ -225,11 +229,7 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
     <flux:card class="mt-6">
         <flux:heading class="mb-4">Story Durum Dağılımı</flux:heading>
         @php
-            $statusCounts = $project->userStories()
-                ->selectRaw('status, count(*) as count')
-                ->groupBy('status')
-                ->pluck('count', 'status');
-            $total = $statusCounts->sum();
+            $statusCounts = $this->projectService->getProjectStoryStatusCounts($project); $total = collect($statusCounts)->sum();
         @endphp
         @if ($total === 0)
             <flux:text class="text-zinc-400 text-sm">Henüz story oluşturulmamış.</flux:text>

@@ -80,4 +80,43 @@ class IssueService
     {
         return $issue->load(['creator', 'assignee', 'attachments']);
     }
+
+    public function getProjectIssueCounts(\App\Models\Project $project): array
+    {
+        $counts = $project->issues()
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN status != ? THEN 1 ELSE 0 END) as open_count,
+                SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as bug_count,
+                SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END) as critical_count
+            ", [
+                \App\Enums\IssueStatus::Done->value,
+                \App\Enums\IssueType::Bug->value,
+                \App\Enums\IssueSeverity::Critical->value
+            ])->first();
+
+        return [
+            'total' => (int) ($counts->total ?? 0),
+            'open' => (int) ($counts->open_count ?? 0),
+            'bugs' => (int) ($counts->bug_count ?? 0),
+            'critical' => (int) ($counts->critical_count ?? 0),
+        ];
+    }
+
+    public function getFilteredIssues(\App\Models\Project $project, array $filters)
+    {
+        $query = $project->issues()->with(['assignee', 'creator']);
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+        if (!empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+        if (!empty($filters['priority'])) {
+            $query->where('priority', $filters['priority']);
+        }
+
+        return $query->latest()->paginate(25);
+    }
 }
