@@ -13,7 +13,7 @@ use Tests\TestCase;
 /**
  * F-13 & F-14: Bildirim oluşturma ve okundu işaretleme testleri.
  *
- * Bildirim API endpoint'lerini ve NotificationService'i test eder.
+ * NotificationService üzerinden bildirim iş akışını test eder.
  */
 class NotificationWorkflowTest extends TestCase
 {
@@ -42,25 +42,16 @@ class NotificationWorkflowTest extends TestCase
         ]);
     }
 
-    public function test_user_can_list_unread_notifications(): void
+    public function test_unread_notifications_count_increments_on_send(): void
     {
-        Notification::create([
-            'user_id' => $this->user->id,
-            'type' => 'task_assigned',
-            'data' => ['message' => 'Test'],
-        ]);
+        $service = app(NotificationService::class);
 
-        Notification::create([
-            'user_id' => $this->user->id,
-            'type' => 'story_created',
-            'data' => ['message' => 'Test 2'],
-        ]);
+        $this->assertEquals(0, $service->getUnreadCount($this->user));
 
-        $response = $this->actingAs($this->user)->getJson('/api/notifications');
+        $service->send($this->user, 'task_assigned', ['task_title' => 'Test']);
+        $service->send($this->user, 'story_status_changed', ['story_title' => 'Story']);
 
-        $response->assertStatus(200);
-        $response->assertJsonCount(2, 'data');
-        $response->assertJsonPath('meta.unread_count', 2);
+        $this->assertEquals(2, $service->getUnreadCount($this->user));
     }
 
     public function test_user_can_mark_notification_as_read(): void
@@ -71,35 +62,38 @@ class NotificationWorkflowTest extends TestCase
             'data' => ['message' => 'Test'],
         ]);
 
-        $response = $this->actingAs($this->user)->postJson('/api/notifications/mark-read', [
-            'id' => $notification->id,
-        ]);
+        $service = app(NotificationService::class);
+        $service->markAsRead($notification->id, $this->user);
 
-        $response->assertStatus(204);
         $this->assertNotNull($notification->fresh()->read_at);
     }
 
     public function test_user_can_mark_all_notifications_as_read(): void
     {
-        Notification::create([
-            'user_id' => $this->user->id,
-            'type' => 'task_assigned',
-            'data' => ['message' => 'Test 1'],
-        ]);
+        Notification::create(['user_id' => $this->user->id, 'type' => 'task_assigned', 'data' => ['msg' => '1']]);
+        Notification::create(['user_id' => $this->user->id, 'type' => 'story_status_changed', 'data' => ['msg' => '2']]);
 
-        Notification::create([
-            'user_id' => $this->user->id,
-            'type' => 'story_created',
-            'data' => ['message' => 'Test 2'],
-        ]);
+        $service = app(NotificationService::class);
+        $service->markAllAsRead($this->user);
 
-        $response = $this->actingAs($this->user)->postJson('/api/notifications/mark-all-read');
-
-        $response->assertStatus(204);
         $this->assertEquals(0, $this->user->notifications()->unread()->count());
     }
 
-    public function test_read_notifications_not_shown_in_list(): void
+    public function test_unread_count_decrements_after_mark_as_read(): void
+    {
+        $service = app(NotificationService::class);
+
+        $n1 = Notification::create(['user_id' => $this->user->id, 'type' => 'task_assigned', 'data' => []]);
+        Notification::create(['user_id' => $this->user->id, 'type' => 'member_added', 'data' => []]);
+
+        $this->assertEquals(2, $service->getUnreadCount($this->user));
+
+        $service->markAsRead($n1->id, $this->user);
+
+        $this->assertEquals(1, $service->getUnreadCount($this->user));
+    }
+
+    public function test_read_notifications_are_not_counted_as_unread(): void
     {
         Notification::create([
             'user_id' => $this->user->id,
@@ -110,12 +104,12 @@ class NotificationWorkflowTest extends TestCase
 
         Notification::create([
             'user_id' => $this->user->id,
-            'type' => 'story_created',
+            'type' => 'story_status_changed',
             'data' => ['message' => 'Unread'],
         ]);
 
-        $response = $this->actingAs($this->user)->getJson('/api/notifications');
+        $service = app(NotificationService::class);
 
-        $response->assertJsonCount(1, 'data');
+        $this->assertEquals(1, $service->getUnreadCount($this->user));
     }
 }

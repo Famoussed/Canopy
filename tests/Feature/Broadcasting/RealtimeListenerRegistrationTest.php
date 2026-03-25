@@ -8,12 +8,17 @@ use App\Enums\ProjectRole;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Attributes\On;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Tüm Livewire bileşenlerinin Echo dinleyicilerini doğru kaydettığını doğrular.
- * getListeners() → "echo-private:project.{id},.event-name" formatı kullanılmalı.
+ * Tüm Livewire bileşenlerinin Echo dinleyicilerini #[On] attribute olarak
+ * doğru kaydettiğini doğrular.
+ *
+ * Livewire 4'te getListeners() public API'den kaldırıldı.
+ * #[On('echo-private:channel.{property.id},.event')] attribute sözdizimi
+ * Reflection API ile doğrulanır.
  */
 class RealtimeListenerRegistrationTest extends TestCase
 {
@@ -35,6 +40,37 @@ class RealtimeListenerRegistrationTest extends TestCase
         ]);
     }
 
+    // ─── Reflection Helpers ─────────────────────────────────────────────
+
+    /**
+     * Verilen component metodunun #[On] attribute'larından event string'lerini döner.
+     * Placeholder'lar ({project.id} gibi) gerçek değerlerle değiştirilir.
+     *
+     * @param  array<string, string>  $bindings  ['project.id' => 'uuid', ...]
+     * @return list<string>
+     */
+    private function getResolvedListeners(object $instance, string $method, array $bindings = []): array
+    {
+        $reflection = new \ReflectionMethod($instance, $method);
+
+        $events = [];
+        foreach ($reflection->getAttributes(On::class) as $attr) {
+            $event = $attr->newInstance()->event;
+            foreach ($bindings as $placeholder => $value) {
+                $event = str_replace('{'.$placeholder.'}', $value, $event);
+            }
+            $events[] = $event;
+        }
+
+        return $events;
+    }
+
+    /** @return array<string, string> */
+    private function projectBindings(): array
+    {
+        return ['project.id' => $this->project->id];
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // sprint-list
     // ═══════════════════════════════════════════════════════════════════
@@ -42,38 +78,37 @@ class RealtimeListenerRegistrationTest extends TestCase
     public function test_sprint_list_registers_sprint_started_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('scrum.sprint-list', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('scrum.sprint-list', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshSprints', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.sprint.started",
-            $listeners
+            $events
         );
     }
 
     public function test_sprint_list_registers_sprint_closed_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('scrum.sprint-list', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('scrum.sprint-list', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshSprints', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.sprint.closed",
-            $listeners
+            $events
         );
     }
 
-    public function test_sprint_list_listeners_target_refresh_method(): void
+    public function test_sprint_list_registers_scope_changed_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('scrum.sprint-list', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('scrum.sprint-list', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshSprints', $this->projectBindings());
 
-        foreach ($listeners as $key => $method) {
-            if (str_starts_with($key, 'echo-private:')) {
-                $this->assertEquals('refreshSprints', $method);
-            }
-        }
+        $this->assertContains(
+            "echo-private:project.{$this->project->id},.sprint.scope-changed",
+            $events
+        );
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -90,14 +125,16 @@ class RealtimeListenerRegistrationTest extends TestCase
             'sprint_id' => $sprint->id,
         ]);
 
-        $listeners = Livewire::test('scrum.story-detail', [
+        $instance = Livewire::test('scrum.story-detail', [
             'project' => $this->project,
             'story' => $story,
-        ])->instance()->getListeners();
+        ])->instance();
 
-        $this->assertArrayHasKey(
+        $events = $this->getResolvedListeners($instance, 'refreshStoryTasks', $this->projectBindings());
+
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.task.status-changed",
-            $listeners
+            $events
         );
     }
 
@@ -111,37 +148,17 @@ class RealtimeListenerRegistrationTest extends TestCase
             'sprint_id' => $sprint->id,
         ]);
 
-        $listeners = Livewire::test('scrum.story-detail', [
+        $instance = Livewire::test('scrum.story-detail', [
             'project' => $this->project,
             'story' => $story,
-        ])->instance()->getListeners();
+        ])->instance();
 
-        $this->assertArrayHasKey(
+        $events = $this->getResolvedListeners($instance, 'refreshStoryTasks', $this->projectBindings());
+
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.task.assigned",
-            $listeners
+            $events
         );
-    }
-
-    public function test_story_detail_listeners_target_refresh_method(): void
-    {
-        $this->actingAs($this->user);
-
-        $sprint = \App\Models\Sprint::factory()->create(['project_id' => $this->project->id]);
-        $story = \App\Models\UserStory::factory()->create([
-            'project_id' => $this->project->id,
-            'sprint_id' => $sprint->id,
-        ]);
-
-        $listeners = Livewire::test('scrum.story-detail', [
-            'project' => $this->project,
-            'story' => $story,
-        ])->instance()->getListeners();
-
-        foreach ($listeners as $key => $method) {
-            if (str_starts_with($key, 'echo-private:')) {
-                $this->assertEquals('refreshStoryTasks', $method);
-            }
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -151,26 +168,25 @@ class RealtimeListenerRegistrationTest extends TestCase
     public function test_backlog_registers_story_created_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('scrum.backlog', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('scrum.backlog', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBacklog', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.story.created",
-            $listeners
+            $events
         );
     }
 
-    public function test_backlog_listeners_target_refresh_method(): void
+    public function test_backlog_registers_scope_changed_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('scrum.backlog', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('scrum.backlog', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBacklog', $this->projectBindings());
 
-        foreach ($listeners as $key => $method) {
-            if (str_starts_with($key, 'echo-private:')) {
-                $this->assertEquals('refreshBacklog', $method);
-            }
-        }
+        $this->assertContains(
+            "echo-private:project.{$this->project->id},.sprint.scope-changed",
+            $events
+        );
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -180,38 +196,25 @@ class RealtimeListenerRegistrationTest extends TestCase
     public function test_issue_list_registers_issue_created_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('issues.issue-list', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('issues.issue-list', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshIssues', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.issue.created",
-            $listeners
+            $events
         );
     }
 
     public function test_issue_list_registers_issue_status_changed_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('issues.issue-list', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('issues.issue-list', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshIssues', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.issue.status-changed",
-            $listeners
+            $events
         );
-    }
-
-    public function test_issue_list_listeners_target_refresh_method(): void
-    {
-        $this->actingAs($this->user);
-        $listeners = Livewire::test('issues.issue-list', ['project' => $this->project])
-            ->instance()->getListeners();
-
-        foreach ($listeners as $key => $method) {
-            if (str_starts_with($key, 'echo-private:')) {
-                $this->assertEquals('refreshIssues', $method);
-            }
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -221,177 +224,125 @@ class RealtimeListenerRegistrationTest extends TestCase
     public function test_analytics_registers_story_status_changed_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('analytics.analytics-dashboard', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('analytics.analytics-dashboard', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshAnalytics', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.story.status-changed",
-            $listeners
+            $events
         );
     }
 
     public function test_analytics_registers_sprint_started_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('analytics.analytics-dashboard', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('analytics.analytics-dashboard', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshAnalytics', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.sprint.started",
-            $listeners
+            $events
         );
     }
 
     public function test_analytics_registers_sprint_closed_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('analytics.analytics-dashboard', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('analytics.analytics-dashboard', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshAnalytics', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.sprint.closed",
-            $listeners
+            $events
         );
     }
 
-    public function test_analytics_listeners_target_refresh_method(): void
-    {
-        $this->actingAs($this->user);
-        $listeners = Livewire::test('analytics.analytics-dashboard', ['project' => $this->project])
-            ->instance()->getListeners();
-
-        foreach ($listeners as $key => $method) {
-            if (str_starts_with($key, 'echo-private:')) {
-                $this->assertEquals('refreshAnalytics', $method);
-            }
-        }
-    }
-
     // ═══════════════════════════════════════════════════════════════════
-    // epic-list (NEW — currently has no listeners)
+    // epic-list
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_epic_list_registers_story_created_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('scrum.epic-list', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('scrum.epic-list', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshEpics', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.story.created",
-            $listeners
+            $events
         );
     }
 
     public function test_epic_list_registers_story_status_changed_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('scrum.epic-list', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('scrum.epic-list', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshEpics', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.story.status-changed",
-            $listeners
+            $events
         );
     }
 
-    public function test_epic_list_listeners_target_refresh_method(): void
-    {
-        $this->actingAs($this->user);
-        $listeners = Livewire::test('scrum.epic-list', ['project' => $this->project])
-            ->instance()->getListeners();
-
-        foreach ($listeners as $key => $method) {
-            if (str_starts_with($key, 'echo-private:')) {
-                $this->assertEquals('refreshEpics', $method);
-            }
-        }
-    }
-
     // ═══════════════════════════════════════════════════════════════════
-    // project-dashboard (NEW — currently has no listeners)
+    // project-dashboard
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_project_dashboard_registers_story_status_changed_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('projects.project-dashboard', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('projects.project-dashboard', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshDashboard', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.story.status-changed",
-            $listeners
+            $events
         );
     }
 
     public function test_project_dashboard_registers_sprint_started_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('projects.project-dashboard', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('projects.project-dashboard', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshDashboard', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.sprint.started",
-            $listeners
+            $events
         );
     }
 
     public function test_project_dashboard_registers_issue_created_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('projects.project-dashboard', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('projects.project-dashboard', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshDashboard', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.issue.created",
-            $listeners
+            $events
         );
     }
 
-    public function test_project_dashboard_listeners_target_refresh_method(): void
-    {
-        $this->actingAs($this->user);
-        $listeners = Livewire::test('projects.project-dashboard', ['project' => $this->project])
-            ->instance()->getListeners();
-
-        foreach ($listeners as $key => $method) {
-            if (str_starts_with($key, 'echo-private:')) {
-                $this->assertEquals('refreshDashboard', $method);
-            }
-        }
-    }
-
     // ═══════════════════════════════════════════════════════════════════
-    // project-settings (NEW — currently has no listeners)
+    // project-settings
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_project_settings_registers_member_added_listener(): void
     {
         $this->actingAs($this->user);
-        $listeners = Livewire::test('projects.project-settings', ['project' => $this->project])
-            ->instance()->getListeners();
+        $instance = Livewire::test('projects.project-settings', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshMembers', $this->projectBindings());
 
-        $this->assertArrayHasKey(
+        $this->assertContains(
             "echo-private:project.{$this->project->id},.member.added",
-            $listeners
+            $events
         );
     }
 
-    public function test_project_settings_listeners_target_refresh_method(): void
-    {
-        $this->actingAs($this->user);
-        $listeners = Livewire::test('projects.project-settings', ['project' => $this->project])
-            ->instance()->getListeners();
-
-        foreach ($listeners as $key => $method) {
-            if (str_starts_with($key, 'echo-private:')) {
-                $this->assertEquals('refreshMembers', $method);
-            }
-        }
-    }
-
     // ═══════════════════════════════════════════════════════════════════
-    // Cross-component: All listeners use correct project-specific channel
+    // Cross-component: dot prefix for custom event names
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_all_listeners_use_dot_prefix_for_custom_event_names(): void
@@ -404,27 +355,27 @@ class RealtimeListenerRegistrationTest extends TestCase
             'sprint_id' => $sprint->id,
         ]);
 
-        $components = [
-            ['scrum.sprint-list', ['project' => $this->project]],
-            ['scrum.story-detail', ['project' => $this->project, 'story' => $story]],
-            ['scrum.backlog', ['project' => $this->project]],
-            ['issues.issue-list', ['project' => $this->project]],
-            ['analytics.analytics-dashboard', ['project' => $this->project]],
-            ['scrum.epic-list', ['project' => $this->project]],
-            ['projects.project-dashboard', ['project' => $this->project]],
-            ['projects.project-settings', ['project' => $this->project]],
+        $componentMethods = [
+            ['scrum.sprint-list', ['project' => $this->project], 'refreshSprints'],
+            ['scrum.story-detail', ['project' => $this->project, 'story' => $story], 'refreshStoryTasks'],
+            ['scrum.backlog', ['project' => $this->project], 'refreshBacklog'],
+            ['issues.issue-list', ['project' => $this->project], 'refreshIssues'],
+            ['analytics.analytics-dashboard', ['project' => $this->project], 'refreshAnalytics'],
+            ['scrum.epic-list', ['project' => $this->project], 'refreshEpics'],
+            ['projects.project-dashboard', ['project' => $this->project], 'refreshDashboard'],
+            ['projects.project-settings', ['project' => $this->project], 'refreshMembers'],
         ];
 
-        foreach ($components as [$component, $params]) {
-            $listeners = Livewire::test($component, $params)->instance()->getListeners();
+        foreach ($componentMethods as [$component, $params, $method]) {
+            $instance = Livewire::test($component, $params)->instance();
+            $events = $this->getResolvedListeners($instance, $method, $this->projectBindings());
 
-            foreach (array_keys($listeners) as $key) {
-                if (str_starts_with($key, 'echo-private:')) {
-                    // After channel name and comma, event name MUST start with dot
+            foreach ($events as $event) {
+                if (str_starts_with($event, 'echo-private:')) {
                     $this->assertMatchesRegularExpression(
                         '/^echo-private:[\w.\-]+,\.[\w.\-]+$/',
-                        $key,
-                        "Component [{$component}] listener [{$key}] missing dot prefix"
+                        $event,
+                        "Component [{$component}] listener [{$event}] missing dot prefix"
                     );
                 }
             }

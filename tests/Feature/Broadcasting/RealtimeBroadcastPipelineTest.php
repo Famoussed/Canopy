@@ -10,6 +10,7 @@ use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Livewire\Attributes\On;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -169,6 +170,30 @@ class RealtimeBroadcastPipelineTest extends TestCase
         ])->assertUnauthorized();
     }
 
+    // ─── Reflection Helper ──────────────────────────────────────────────
+
+    /**
+     * Verilen metodun #[On] attribute'larını okur, placeholder'ları çözer.
+     *
+     * @param  array<string, string>  $bindings
+     * @return list<string>
+     */
+    private function getResolvedListeners(object $instance, string $method, array $bindings = []): array
+    {
+        $reflection = new \ReflectionMethod($instance, $method);
+
+        $events = [];
+        foreach ($reflection->getAttributes(On::class) as $attr) {
+            $event = $attr->newInstance()->event;
+            foreach ($bindings as $placeholder => $value) {
+                $event = str_replace('{'.$placeholder.'}', $value, $event);
+            }
+            $events[] = $event;
+        }
+
+        return $events;
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // 4. Livewire Echo Listener Configuration
     // ═══════════════════════════════════════════════════════════════════
@@ -185,13 +210,13 @@ class RealtimeBroadcastPipelineTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $component = Livewire::test('notification.notification-bell');
+        $instance = Livewire::test('notification.notification-bell')->instance();
+        $events = $this->getResolvedListeners($instance, 'incrementUnreadCount', ['userId' => $this->user->id]);
 
-        $listeners = $component->instance()->getListeners();
-
-        $expectedKey = "echo-private:user.{$this->user->id},.notification.received";
-        $this->assertArrayHasKey($expectedKey, $listeners);
-        $this->assertEquals('incrementUnreadCount', $listeners[$expectedKey]);
+        $this->assertContains(
+            "echo-private:user.{$this->user->id},.notification.received",
+            $events
+        );
     }
 
     public function test_echo_listener_channel_matches_event_broadcast_channel(): void
@@ -200,18 +225,17 @@ class RealtimeBroadcastPipelineTest extends TestCase
         $notification = Notification::factory()->create(['user_id' => $this->user->id]);
         $event = new NotificationSent($notification, $this->user->id);
         $eventChannelName = collect($event->broadcastOn())->first()->name;
-
-        // Livewire side: listener key
-        $this->actingAs($this->user);
-        $component = Livewire::test('notification.notification-bell');
-        $listeners = $component->instance()->getListeners();
-        $listenerKey = array_keys($listeners)[0];
-
-        // Extract channel from listener: "echo-private:user.{uuid},.event" → "user.{uuid}"
-        $listenerChannel = str_replace('echo-private:', '', explode(',', $listenerKey)[0]);
-
-        // Event channel: "private-user.{uuid}" → "user.{uuid}"
         $eventChannel = str_replace('private-', '', $eventChannelName);
+
+        // Livewire side: resolved listener
+        $this->actingAs($this->user);
+        $instance = Livewire::test('notification.notification-bell')->instance();
+        $events = $this->getResolvedListeners($instance, 'incrementUnreadCount', ['userId' => $this->user->id]);
+
+        $this->assertNotEmpty($events);
+
+        // Extract channel from first listener: "echo-private:user.{uuid},.event" → "user.{uuid}"
+        $listenerChannel = str_replace('echo-private:', '', explode(',', $events[0])[0]);
 
         $this->assertEquals($eventChannel, $listenerChannel);
     }
@@ -225,14 +249,14 @@ class RealtimeBroadcastPipelineTest extends TestCase
 
         // Livewire side
         $this->actingAs($this->user);
-        $component = Livewire::test('notification.notification-bell');
-        $listeners = $component->instance()->getListeners();
-        $listenerKey = array_keys($listeners)[0];
+        $instance = Livewire::test('notification.notification-bell')->instance();
+        $events = $this->getResolvedListeners($instance, 'incrementUnreadCount', ['userId' => $this->user->id]);
 
-        // Extract event name: after the comma, with dot prefix
-        $listenerEventName = explode(',', $listenerKey)[1];
+        $this->assertNotEmpty($events);
 
-        // broadcastAs() custom name requires dot prefix in Echo listener
+        // Extract event name: after the comma — broadcastAs() custom name requires dot prefix
+        $listenerEventName = explode(',', $events[0])[1];
+
         $this->assertEquals(".{$broadcastName}", $listenerEventName);
     }
 
@@ -298,13 +322,14 @@ class RealtimeBroadcastPipelineTest extends TestCase
 
         // 2. Livewire listener is configured for exactly this channel + event
         $this->actingAs($this->user);
-        $component = Livewire::test('notification.notification-bell');
-        $listeners = $component->instance()->getListeners();
+        $instance = Livewire::test('notification.notification-bell')->instance();
+        $events = $this->getResolvedListeners($instance, 'incrementUnreadCount', ['userId' => $this->user->id]);
 
         $expectedListenerKey = "echo-private:user.{$this->user->id},.notification.received";
-        $this->assertArrayHasKey($expectedListenerKey, $listeners);
+        $this->assertContains($expectedListenerKey, $events);
 
         // 3. Mount already counted the existing notification (unreadCount = 1)
+        $component = Livewire::test('notification.notification-bell');
         $component->assertSet('unreadCount', 1);
 
         // 4. The handler method works when invoked (simulates Echo trigger)

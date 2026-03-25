@@ -46,9 +46,15 @@ new class extends Component {
 
     public function markAsRead(string $notificationId, \App\Services\NotificationService $notificationService): void
     {
+        $notification = auth()->user()->notifications()->find($notificationId);
+        $wasUnread = $notification && is_null($notification->read_at);
+
         $notificationService->markAsRead($notificationId, auth()->user());
-        
-        $this->unreadCount = max(0, $this->unreadCount - 1);
+
+        if ($wasUnread) {
+            $this->unreadCount = max(0, $this->unreadCount - 1);
+        }
+
         unset($this->notifications);
     }
 

@@ -182,9 +182,9 @@ class IssueAssignmentTest extends TestCase
     {
         Livewire::actingAs($this->owner)
             ->test('issues.issue-list', ['project' => $this->project])
-            ->set('title', 'Assigned Bug')
-            ->set('type', 'bug')
-            ->set('assignedTo', $this->member->id)
+            ->set('createForm.title', 'Assigned Bug')
+            ->set('createForm.type', 'bug')
+            ->set('createForm.assigned_to', $this->member->id)
             ->call('createIssue');
 
         $this->assertDatabaseHas('issues', [

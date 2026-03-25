@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserStory;
+use App\Services\TaskService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -64,13 +65,12 @@ class TaskPolicyTest extends TestCase
             'status' => TaskStatus::InProgress,
         ]);
 
-        $response = $this->actingAs($this->member)->putJson(
-            "/api/tasks/{$task->id}/status",
-            ['status' => 'done']
-        );
+        $this->assertTrue($this->member->can('changeStatus', $task));
 
-        $response->assertStatus(200);
-        $this->assertEquals(TaskStatus::Done, $task->fresh()->status);
+        $service = app(TaskService::class);
+        $updated = $service->changeStatus($task, TaskStatus::Done, $this->member);
+
+        $this->assertEquals(TaskStatus::Done, $updated->status);
     }
 
     public function test_member_cannot_change_others_task_status(): void
@@ -87,12 +87,7 @@ class TaskPolicyTest extends TestCase
             'status' => TaskStatus::InProgress,
         ]);
 
-        $response = $this->actingAs($this->member)->putJson(
-            "/api/tasks/{$task->id}/status",
-            ['status' => 'done']
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($this->member->can('changeStatus', $task));
     }
 
     public function test_moderator_can_change_any_task_status(): void
@@ -102,44 +97,34 @@ class TaskPolicyTest extends TestCase
             'status' => TaskStatus::InProgress,
         ]);
 
-        $response = $this->actingAs($this->moderator)->putJson(
-            "/api/tasks/{$task->id}/status",
-            ['status' => 'done']
-        );
+        $this->assertTrue($this->moderator->can('changeStatus', $task));
 
-        $response->assertStatus(200);
+        $service = app(TaskService::class);
+        $updated = $service->changeStatus($task, TaskStatus::Done, $this->moderator);
+
+        $this->assertEquals(TaskStatus::Done, $updated->status);
     }
 
     public function test_member_can_create_task(): void
     {
-        $response = $this->actingAs($this->member)->postJson(
-            "/api/stories/{$this->story->id}/tasks",
-            ['title' => 'New Task']
-        );
+        $this->assertTrue($this->member->can('create', [Task::class, $this->project]));
 
-        $response->assertStatus(201);
+        $service = app(TaskService::class);
+        $task = $service->create(['title' => 'New Task'], $this->story, $this->member);
+
+        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'title' => 'New Task']);
     }
 
     public function test_moderator_can_create_task(): void
     {
-        $response = $this->actingAs($this->moderator)->postJson(
-            "/api/stories/{$this->story->id}/tasks",
-            ['title' => 'New Task']
-        );
-
-        $response->assertStatus(201);
+        $this->assertTrue($this->moderator->can('create', [Task::class, $this->project]));
     }
 
     public function test_non_member_cannot_create_task(): void
     {
         $nonMember = User::factory()->create();
 
-        $response = $this->actingAs($nonMember)->postJson(
-            "/api/stories/{$this->story->id}/tasks",
-            ['title' => 'New Task']
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($nonMember->can('create', [Task::class, $this->project]));
     }
 
     public function test_member_cannot_assign_task(): void
@@ -148,12 +133,7 @@ class TaskPolicyTest extends TestCase
             'user_story_id' => $this->story->id,
         ]);
 
-        $response = $this->actingAs($this->member)->putJson(
-            "/api/tasks/{$task->id}/assign",
-            ['assigned_to' => $this->member->id]
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($this->member->can('assign', $task));
     }
 
     public function test_moderator_can_assign_task(): void
@@ -162,12 +142,12 @@ class TaskPolicyTest extends TestCase
             'user_story_id' => $this->story->id,
         ]);
 
-        $response = $this->actingAs($this->moderator)->putJson(
-            "/api/tasks/{$task->id}/assign",
-            ['assigned_to' => $this->member->id]
-        );
+        $this->assertTrue($this->moderator->can('assign', $task));
 
-        $response->assertStatus(200);
+        $service = app(TaskService::class);
+        $updated = $service->assign($task, $this->member, $this->moderator);
+
+        $this->assertEquals($this->member->id, $updated->assigned_to);
     }
 
     public function test_member_cannot_delete_task(): void
@@ -176,11 +156,7 @@ class TaskPolicyTest extends TestCase
             'user_story_id' => $this->story->id,
         ]);
 
-        $response = $this->actingAs($this->member)->deleteJson(
-            "/api/tasks/{$task->id}"
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($this->member->can('delete', $task));
     }
 
     public function test_owner_can_delete_task(): void
@@ -189,11 +165,12 @@ class TaskPolicyTest extends TestCase
             'user_story_id' => $this->story->id,
         ]);
 
-        $response = $this->actingAs($this->owner)->deleteJson(
-            "/api/tasks/{$task->id}"
-        );
+        $this->assertTrue($this->owner->can('delete', $task));
 
-        $response->assertStatus(204);
+        $service = app(TaskService::class);
+        $service->delete($task);
+
+        $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
     }
 
     public function test_member_can_update_own_created_task(): void
@@ -203,13 +180,12 @@ class TaskPolicyTest extends TestCase
             'created_by' => $this->member->id,
         ]);
 
-        $response = $this->actingAs($this->member)->putJson(
-            "/api/tasks/{$task->id}",
-            ['title' => 'Updated By Creator']
-        );
+        $this->assertTrue($this->member->can('update', $task));
 
-        $response->assertStatus(200);
-        $this->assertEquals('Updated By Creator', $task->fresh()->title);
+        $service = app(TaskService::class);
+        $updated = $service->update($task, ['title' => 'Updated By Creator']);
+
+        $this->assertEquals('Updated By Creator', $updated->title);
     }
 
     public function test_member_cannot_update_task_created_by_others(): void
@@ -219,11 +195,6 @@ class TaskPolicyTest extends TestCase
             'created_by' => $this->moderator->id,
         ]);
 
-        $response = $this->actingAs($this->member)->putJson(
-            "/api/tasks/{$task->id}",
-            ['title' => 'Should Not Update']
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($this->member->can('update', $task));
     }
 }

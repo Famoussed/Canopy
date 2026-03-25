@@ -14,7 +14,7 @@ use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('layouts::app')] #[Title('Story Detay — Canopy')] class extends Component {
+new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class extends Component {
     public Project $project;
 
     public UserStory $story;

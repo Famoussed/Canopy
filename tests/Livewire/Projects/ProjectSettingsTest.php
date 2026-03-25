@@ -50,7 +50,7 @@ class ProjectSettingsTest extends TestCase
     {
         Livewire::actingAs($this->owner)
             ->test('projects.project-settings', ['project' => $this->project])
-            ->set('projectName', 'Updated Project Name')
+            ->set('form.name', 'Updated Project Name')
             ->call('saveProject')
             ->assertHasNoErrors();
 
@@ -61,9 +61,9 @@ class ProjectSettingsTest extends TestCase
     {
         Livewire::actingAs($this->owner)
             ->test('projects.project-settings', ['project' => $this->project])
-            ->set('projectName', '')
+            ->set('form.name', '')
             ->call('saveProject')
-            ->assertHasErrors(['projectName']);
+            ->assertHasErrors(['form.name']);
     }
 
     public function test_add_member_by_email(): void

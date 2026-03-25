@@ -16,13 +16,15 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\UserStory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Attributes\On;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
  * Kanban Board'un gerçek zamanlı güncelleme testleri.
  *
- * Board, project kanalındaki event'leri dinlemeli ve board'u yenilemeli.
+ * Livewire 4'te getListeners() public API'den kaldırıldı.
+ * Listener doğrulaması #[On] attribute Reflection ile yapılır.
  */
 class KanbanBoardRealtimeTest extends TestCase
 {
@@ -49,65 +51,92 @@ class KanbanBoardRealtimeTest extends TestCase
         ]);
     }
 
+    // ─── Reflection Helper ──────────────────────────────────────────────
+
+    /**
+     * Verilen metodun #[On] attribute'larını okur, placeholder'ları çözer.
+     *
+     * @param  array<string, string>  $bindings
+     * @return list<string>
+     */
+    private function getResolvedListeners(object $instance, string $method, array $bindings = []): array
+    {
+        $reflection = new \ReflectionMethod($instance, $method);
+
+        $events = [];
+        foreach ($reflection->getAttributes(On::class) as $attr) {
+            $event = $attr->newInstance()->event;
+            foreach ($bindings as $placeholder => $value) {
+                $event = str_replace('{'.$placeholder.'}', $value, $event);
+            }
+            $events[] = $event;
+        }
+
+        return $events;
+    }
+
     // ═══════════════════════════════════════════════════════════════════
-    // 1. Listener Registration — getListeners() returns correct channel/event pairs
+    // 1. Listener Registration — #[On] attribute'lar doğru tanımlı
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_board_registers_echo_listener_for_story_status_changed(): void
     {
         $this->actingAs($this->user);
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
 
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
-
-        $expectedKey = "echo-private:project.{$this->project->id},.story.status-changed";
-        $this->assertArrayHasKey($expectedKey, $listeners);
-        $this->assertEquals('refreshBoard', $listeners[$expectedKey]);
+        $this->assertContains(
+            "echo-private:project.{$this->project->id},.story.status-changed",
+            $events
+        );
     }
 
     public function test_board_registers_echo_listener_for_task_status_changed(): void
     {
         $this->actingAs($this->user);
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
 
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
-
-        $expectedKey = "echo-private:project.{$this->project->id},.task.status-changed";
-        $this->assertArrayHasKey($expectedKey, $listeners);
-        $this->assertEquals('refreshBoard', $listeners[$expectedKey]);
+        $this->assertContains(
+            "echo-private:project.{$this->project->id},.task.status-changed",
+            $events
+        );
     }
 
     public function test_board_registers_echo_listener_for_story_created(): void
     {
         $this->actingAs($this->user);
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
 
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
-
-        $expectedKey = "echo-private:project.{$this->project->id},.story.created";
-        $this->assertArrayHasKey($expectedKey, $listeners);
+        $this->assertContains(
+            "echo-private:project.{$this->project->id},.story.created",
+            $events
+        );
     }
 
     public function test_board_registers_echo_listener_for_sprint_started(): void
     {
         $this->actingAs($this->user);
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
 
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
-
-        $expectedKey = "echo-private:project.{$this->project->id},.sprint.started";
-        $this->assertArrayHasKey($expectedKey, $listeners);
+        $this->assertContains(
+            "echo-private:project.{$this->project->id},.sprint.started",
+            $events
+        );
     }
 
     public function test_board_registers_echo_listener_for_sprint_closed(): void
     {
         $this->actingAs($this->user);
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
 
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
-
-        $expectedKey = "echo-private:project.{$this->project->id},.sprint.closed";
-        $this->assertArrayHasKey($expectedKey, $listeners);
+        $this->assertContains(
+            "echo-private:project.{$this->project->id},.sprint.closed",
+            $events
+        );
     }
 
     public function test_board_listeners_use_project_specific_channel(): void
@@ -115,21 +144,19 @@ class KanbanBoardRealtimeTest extends TestCase
         $otherProject = Project::factory()->create(['owner_id' => $this->user->id]);
 
         $this->actingAs($this->user);
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
 
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
-
-        // Each listener key must contain THIS project's id, not another project's
-        foreach (array_keys($listeners) as $key) {
-            if (str_starts_with($key, 'echo-private:project.')) {
-                $this->assertStringContainsString($this->project->id, $key);
-                $this->assertStringNotContainsString($otherProject->id, $key);
+        foreach ($events as $event) {
+            if (str_starts_with($event, 'echo-private:project.')) {
+                $this->assertStringContainsString($this->project->id, $event);
+                $this->assertStringNotContainsString($otherProject->id, $event);
             }
         }
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // 2. Event ↔ Listener alignment
+    // 2. Event ↔ Listener alignment — event kanalı ile listener eşleşmesi
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_story_status_changed_event_channel_matches_board_listener(): void
@@ -137,18 +164,15 @@ class KanbanBoardRealtimeTest extends TestCase
         $story = UserStory::factory()->create(['project_id' => $this->project->id]);
         $event = new StoryStatusChanged($story, 'new', 'in_progress', $this->user);
 
-        // Event channel
         $eventChannel = str_replace('private-', '', collect($event->broadcastOn())->first()->name);
-        // Event broadcast name
         $broadcastName = $event->broadcastAs();
-
-        // Livewire listener
-        $this->actingAs($this->user);
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
-
         $expectedKey = "echo-private:{$eventChannel},.{$broadcastName}";
-        $this->assertArrayHasKey($expectedKey, $listeners);
+
+        $this->actingAs($this->user);
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
+
+        $this->assertContains($expectedKey, $events);
     }
 
     public function test_task_status_changed_event_channel_matches_board_listener(): void
@@ -160,13 +184,13 @@ class KanbanBoardRealtimeTest extends TestCase
 
         $eventChannel = str_replace('private-', '', collect($event->broadcastOn())->first()->name);
         $broadcastName = $event->broadcastAs();
+        $expectedKey = "echo-private:{$eventChannel},.{$broadcastName}";
 
         $this->actingAs($this->user);
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
 
-        $expectedKey = "echo-private:{$eventChannel},.{$broadcastName}";
-        $this->assertArrayHasKey($expectedKey, $listeners);
+        $this->assertContains($expectedKey, $events);
     }
 
     public function test_sprint_started_event_channel_matches_board_listener(): void
@@ -175,13 +199,13 @@ class KanbanBoardRealtimeTest extends TestCase
 
         $eventChannel = str_replace('private-', '', collect($event->broadcastOn())->first()->name);
         $broadcastName = $event->broadcastAs();
+        $expectedKey = "echo-private:{$eventChannel},.{$broadcastName}";
 
         $this->actingAs($this->user);
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
 
-        $expectedKey = "echo-private:{$eventChannel},.{$broadcastName}";
-        $this->assertArrayHasKey($expectedKey, $listeners);
+        $this->assertContains($expectedKey, $events);
     }
 
     public function test_sprint_closed_event_channel_matches_board_listener(): void
@@ -190,17 +214,17 @@ class KanbanBoardRealtimeTest extends TestCase
 
         $eventChannel = str_replace('private-', '', collect($event->broadcastOn())->first()->name);
         $broadcastName = $event->broadcastAs();
+        $expectedKey = "echo-private:{$eventChannel},.{$broadcastName}";
 
         $this->actingAs($this->user);
-        $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
-        $listeners = $component->instance()->getListeners();
+        $instance = Livewire::test('scrum.kanban-board', ['project' => $this->project])->instance();
+        $events = $this->getResolvedListeners($instance, 'refreshBoard', ['project.id' => $this->project->id]);
 
-        $expectedKey = "echo-private:{$eventChannel},.{$broadcastName}";
-        $this->assertArrayHasKey($expectedKey, $listeners);
+        $this->assertContains($expectedKey, $events);
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // 3. refreshBoard method — clears computed caches
+    // 3. refreshBoard method — computed cache'leri temizler
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_refresh_board_can_be_called(): void
@@ -226,19 +250,16 @@ class KanbanBoardRealtimeTest extends TestCase
         $component = Livewire::test('scrum.kanban-board', ['project' => $this->project]);
         $component->assertSee('Board Story');
 
-        // Simulate another user changing the status directly in DB
         $story->update(['status' => StoryStatus::InProgress]);
 
-        // After refreshBoard (triggered by Echo event), board should show new state
         $component->call('refreshBoard');
 
-        // Re-render should pick up the new status
         $updatedStory = $story->fresh();
         $this->assertEquals(StoryStatus::InProgress, $updatedStory->status);
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // 4. Project channel authorization for board users
+    // 4. Project channel authorization
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_project_member_can_access_project_channel(): void

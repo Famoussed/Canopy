@@ -8,37 +8,14 @@ use App\Enums\ProjectRole;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
  * Proje CRUD ve Yetkilendirme Testi
  *
- * Bu test sınıfı, proje oluşturma, listeleme, güncelleme ve silme (CRUD)
- * işlemlerini ve bu işlemler üzerindeki yetkilendirme kurallarını test eder.
- * Tüm istekler /api/projects endpoint'lerine JSON olarak yapılır.
- *
- * Test Edilen Senaryolar:
- *  - test_user_can_create_project:
- *    Giriş yapmış kullanıcı yeni bir proje oluşturur. HTTP 201 dönmesi,
- *    proje adının doğru kaydedilmesi ve BR-13 iş kuralı gereği projeyi
- *    oluşturan kullanıcının otomatik olarak "Owner" rolüyle üye yapılması beklenir.
- *
- *  - test_user_can_list_own_projects:
- *    Kullanıcının üyesi olduğu projeleri listelemesi test edilir.
- *    GET /api/projects isteğine HTTP 200 dönmesi ve yalnızca kullanıcıya
- *    ait 1 projenin listelenmesi beklenir.
- *
- *  - test_owner_can_update_project:
- *    Proje sahibi (Owner) projenin adını günceller. HTTP 200 dönmesi
- *    ve güncellenmiş adın yanıtta yer alması beklenir.
- *
- *  - test_owner_can_delete_project:
- *    Proje sahibi projeyi siler. HTTP 204 dönmesi ve projenin veritabanında
- *    soft-delete ile işaretlenmiş olması beklenir.
- *
- *  - test_non_owner_cannot_delete_project:
- *    "Member" rolündeki bir kullanıcı projeyi silmeye çalışır.
- *    HTTP 403 (Forbidden) dönmesi beklenir. (Sadece Owner silebilir.)
+ * Proje oluşturma, güncelleme ve silme işlemlerini Livewire bileşenleri
+ * üzerinden test eder.
  */
 class ProjectTest extends TestCase
 {
@@ -48,16 +25,19 @@ class ProjectTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/projects', [
-            'name' => 'Test Project',
-            'description' => 'A test project',
-        ]);
+        Livewire::actingAs($user)
+            ->test('projects.create-project')
+            ->set('form.name', 'Test Project')
+            ->set('form.description', 'A test project')
+            ->call('create')
+            ->assertHasNoErrors();
 
-        $response->assertStatus(201)
-            ->assertJsonPath('data.name', 'Test Project');
+        $this->assertDatabaseHas('projects', ['name' => 'Test Project']);
 
-        // BR-13: Owner membership otomatik
+        // BR-13: Owner membership otomatik oluşturulur
+        $project = Project::where('name', 'Test Project')->first();
         $this->assertDatabaseHas('project_memberships', [
+            'project_id' => $project->id,
             'user_id' => $user->id,
             'role' => ProjectRole::Owner->value,
         ]);
@@ -69,10 +49,10 @@ class ProjectTest extends TestCase
         $project = Project::factory()->create(['owner_id' => $user->id]);
         $project->memberships()->create(['user_id' => $user->id, 'role' => ProjectRole::Owner]);
 
-        $response = $this->actingAs($user)->getJson('/api/projects');
+        $response = $this->actingAs($user)->get('/dashboard');
 
-        $response->assertStatus(200)
-            ->assertJsonCount(1, 'data');
+        $response->assertStatus(200);
+        $response->assertSee($project->name);
     }
 
     public function test_owner_can_update_project(): void
@@ -81,12 +61,13 @@ class ProjectTest extends TestCase
         $project = Project::factory()->create(['owner_id' => $user->id]);
         $project->memberships()->create(['user_id' => $user->id, 'role' => ProjectRole::Owner]);
 
-        $response = $this->actingAs($user)->putJson("/api/projects/{$project->slug}", [
-            'name' => 'Updated Project',
-        ]);
+        Livewire::actingAs($user)
+            ->test('projects.project-settings', ['project' => $project])
+            ->set('form.name', 'Updated Project')
+            ->call('saveProject')
+            ->assertHasNoErrors();
 
-        $response->assertStatus(200)
-            ->assertJsonPath('data.name', 'Updated Project');
+        $this->assertDatabaseHas('projects', ['id' => $project->id, 'name' => 'Updated Project']);
     }
 
     public function test_owner_can_delete_project(): void
@@ -95,9 +76,10 @@ class ProjectTest extends TestCase
         $project = Project::factory()->create(['owner_id' => $user->id]);
         $project->memberships()->create(['user_id' => $user->id, 'role' => ProjectRole::Owner]);
 
-        $response = $this->actingAs($user)->deleteJson("/api/projects/{$project->slug}");
+        Livewire::actingAs($user)
+            ->test('projects.project-settings', ['project' => $project])
+            ->call('deleteProject');
 
-        $response->assertStatus(204);
         $this->assertSoftDeleted('projects', ['id' => $project->id]);
     }
 
@@ -109,8 +91,8 @@ class ProjectTest extends TestCase
         $project->memberships()->create(['user_id' => $owner->id, 'role' => ProjectRole::Owner]);
         $project->memberships()->create(['user_id' => $member->id, 'role' => ProjectRole::Member]);
 
-        $response = $this->actingAs($member)->deleteJson("/api/projects/{$project->slug}");
-
-        $response->assertStatus(403);
+        // Policy: only Owner can delete a project
+        $this->assertFalse($member->can('delete', $project));
+        $this->assertTrue($owner->can('delete', $project));
     }
 }

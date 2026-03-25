@@ -8,12 +8,13 @@ use App\Enums\ProjectRole;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * P-08, P-09, P-10: Issue, Transfer Ownership, EnsureProjectMember testleri.
+ * P-08, P-09, P-10: Issue, Project yetki ve üyelik yönetimi testleri.
  *
- * Üyelik kontrol middleware'i, issue yetkilendirme ve ownership transfer senaryoları.
+ * Üyelik kontrol middleware'i, proje güncelleme yetkilendirme ve üye yönetimi senaryoları.
  */
 class AdvancedRbacTest extends TestCase
 {
@@ -46,64 +47,55 @@ class AdvancedRbacTest extends TestCase
 
     public function test_member_can_create_issue_with_priority(): void
     {
-        $response = $this->actingAs($this->member)->postJson(
-            "/api/projects/{$this->project->slug}/issues",
-            [
-                'title' => 'Priority Bug',
-                'type' => 'bug',
-                'priority' => 'high',
-                'severity' => 'critical',
-            ]
-        );
+        Livewire::actingAs($this->member)
+            ->test('issues.issue-list', ['project' => $this->project])
+            ->set('createForm.title', 'Priority Bug')
+            ->set('createForm.type', 'bug')
+            ->set('createForm.priority', 'high')
+            ->set('createForm.severity', 'critical')
+            ->call('createIssue')
+            ->assertHasNoErrors();
 
-        $response->assertStatus(201);
+        $this->assertDatabaseHas('issues', [
+            'project_id' => $this->project->id,
+            'title' => 'Priority Bug',
+            'priority' => 'high',
+        ]);
     }
 
     public function test_member_cannot_update_project(): void
     {
-        $response = $this->actingAs($this->member)->putJson(
-            "/api/projects/{$this->project->slug}",
-            ['name' => 'New Name']
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($this->member->can('update', $this->project));
     }
 
     public function test_owner_can_update_project(): void
     {
-        $response = $this->actingAs($this->owner)->putJson(
-            "/api/projects/{$this->project->slug}",
-            ['name' => 'Updated Name']
-        );
+        Livewire::actingAs($this->owner)
+            ->test('projects.project-settings', ['project' => $this->project])
+            ->set('form.name', 'Updated Name')
+            ->call('saveProject')
+            ->assertHasNoErrors();
 
-        $response->assertStatus(200);
+        $this->assertEquals('Updated Name', $this->project->fresh()->name);
     }
 
     public function test_moderator_cannot_delete_project(): void
     {
-        $response = $this->actingAs($this->moderator)->deleteJson(
-            "/api/projects/{$this->project->slug}"
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($this->moderator->can('delete', $this->project));
     }
 
     public function test_ensure_project_member_middleware_blocks_non_member(): void
     {
         $outsider = User::factory()->create();
 
-        $response = $this->actingAs($outsider)->getJson(
-            "/api/projects/{$this->project->slug}/stories"
-        );
+        $response = $this->actingAs($outsider)->get("/projects/{$this->project->slug}/backlog");
 
         $response->assertStatus(403);
     }
 
     public function test_ensure_project_member_middleware_allows_member(): void
     {
-        $response = $this->actingAs($this->member)->getJson(
-            "/api/projects/{$this->project->slug}/stories"
-        );
+        $response = $this->actingAs($this->member)->get("/projects/{$this->project->slug}/backlog");
 
         $response->assertStatus(200);
     }
@@ -112,56 +104,36 @@ class AdvancedRbacTest extends TestCase
     {
         $admin = User::factory()->superAdmin()->create();
 
-        $response = $this->actingAs($admin)->getJson(
-            "/api/projects/{$this->project->slug}/stories"
-        );
+        $response = $this->actingAs($admin)->get("/projects/{$this->project->slug}/backlog");
 
         $response->assertStatus(200);
     }
 
     public function test_moderator_can_add_member(): void
     {
-        $newUser = User::factory()->create();
+        $newUser = User::factory()->create(['email' => 'newuser@test.com']);
 
-        $response = $this->actingAs($this->moderator)->postJson(
-            "/api/projects/{$this->project->slug}/members",
-            [
-                'email' => $newUser->email,
-                'role' => 'member',
-            ]
-        );
+        Livewire::actingAs($this->moderator)
+            ->test('projects.project-settings', ['project' => $this->project])
+            ->set('newMemberEmail', 'newuser@test.com')
+            ->set('newMemberRole', 'member')
+            ->call('addMember')
+            ->assertHasNoErrors();
 
-        $response->assertSuccessful();
+        $this->assertDatabaseHas('project_memberships', [
+            'project_id' => $this->project->id,
+            'user_id' => $newUser->id,
+        ]);
     }
 
     public function test_member_cannot_add_member(): void
     {
-        $newUser = User::factory()->create();
-
-        $response = $this->actingAs($this->member)->postJson(
-            "/api/projects/{$this->project->slug}/members",
-            [
-                'email' => $newUser->email,
-                'role' => 'member',
-            ]
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($this->member->can('addMember', $this->project));
     }
 
     public function test_member_cannot_remove_other_member(): void
     {
-        $otherMember = User::factory()->create();
-        $this->project->memberships()->create([
-            'user_id' => $otherMember->id,
-            'role' => ProjectRole::Member,
-        ]);
-
-        $response = $this->actingAs($this->member)->deleteJson(
-            "/api/projects/{$this->project->slug}/members/{$otherMember->id}"
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($this->member->can('removeMember', $this->project));
     }
 
     public function test_max_member_limit_enforced_via_api(): void
@@ -174,16 +146,18 @@ class AdvancedRbacTest extends TestCase
             ]);
         }
 
-        $sixthUser = User::factory()->create();
+        $sixthUser = User::factory()->create(['email' => 'sixth@test.com']);
 
-        $response = $this->actingAs($this->owner)->postJson(
-            "/api/projects/{$this->project->slug}/members",
-            [
-                'email' => $sixthUser->email,
-                'role' => 'member',
-            ]
-        );
+        Livewire::actingAs($this->owner)
+            ->test('projects.project-settings', ['project' => $this->project])
+            ->set('newMemberEmail', 'sixth@test.com')
+            ->set('newMemberRole', 'member')
+            ->call('addMember')
+            ->assertHasErrors(['newMemberEmail']);
 
-        $response->assertStatus(422);
+        $this->assertDatabaseMissing('project_memberships', [
+            'project_id' => $this->project->id,
+            'user_id' => $sixthUser->id,
+        ]);
     }
 }

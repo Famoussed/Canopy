@@ -67,11 +67,11 @@ class IssueListTest extends TestCase
     {
         Livewire::actingAs($this->user)
             ->test('issues.issue-list', ['project' => $this->project])
-            ->set('title', 'Yeni Bug')
-            ->set('description', 'Bug açıklaması')
-            ->set('type', 'bug')
-            ->set('priority', 'normal')
-            ->set('severity', 'minor')
+            ->set('createForm.title', 'Yeni Bug')
+            ->set('createForm.description', 'Bug açıklaması')
+            ->set('createForm.type', 'bug')
+            ->set('createForm.priority', 'normal')
+            ->set('createForm.severity', 'minor')
             ->call('createIssue');
 
         $this->assertDatabaseHas('issues', [
@@ -85,9 +85,9 @@ class IssueListTest extends TestCase
     {
         Livewire::actingAs($this->user)
             ->test('issues.issue-list', ['project' => $this->project])
-            ->set('title', '')
+            ->set('createForm.title', '')
             ->call('createIssue')
-            ->assertHasErrors(['title']);
+            ->assertHasErrors(['createForm.title']);
     }
 
     public function test_filter_issues_by_status(): void
@@ -106,6 +106,7 @@ class IssueListTest extends TestCase
             'created_by' => $this->user->id,
         ]);
 
+        // statusFilter is a direct #[Url] property on the component, not in a Form Object
         $component = Livewire::actingAs($this->user)
             ->test('issues.issue-list', ['project' => $this->project])
             ->set('statusFilter', 'new');
@@ -153,8 +154,8 @@ class IssueListTest extends TestCase
         Livewire::actingAs($this->user)
             ->test('issues.issue-list', ['project' => $this->project])
             ->call('editIssue', $issue->id)
-            ->assertSet('editTitle', 'Original Title')
-            ->set('editTitle', 'Updated Title')
+            ->assertSet('editForm.title', 'Original Title')
+            ->set('editForm.title', 'Updated Title')
             ->call('updateIssue');
 
         $this->assertEquals('Updated Title', $issue->fresh()->title);

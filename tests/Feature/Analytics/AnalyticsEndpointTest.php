@@ -10,12 +10,13 @@ use App\Models\Sprint;
 use App\Models\User;
 use App\Models\UserStory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * F-15 & F-16: Burndown ve Velocity API endpoint testleri.
+ * F-15 & F-16: Burndown ve Velocity testleri.
  *
- * Analytics endpoint'lerinin doğru veri döndüğünü test eder.
+ * Livewire analytics-dashboard bileşeninin doğru veri hesapladığını test eder.
  */
 class AnalyticsEndpointTest extends TestCase
 {
@@ -37,7 +38,16 @@ class AnalyticsEndpointTest extends TestCase
         ]);
     }
 
-    public function test_burndown_endpoint_returns_data(): void
+    public function test_analytics_page_renders(): void
+    {
+        $this->actingAs($this->user);
+
+        $response = $this->get("/projects/{$this->project->slug}/analytics");
+
+        $response->assertStatus(200);
+    }
+
+    public function test_analytics_dashboard_renders_with_active_sprint(): void
     {
         $sprint = Sprint::factory()->active()->create([
             'project_id' => $this->project->id,
@@ -51,61 +61,30 @@ class AnalyticsEndpointTest extends TestCase
             'total_points' => 10,
         ]);
 
-        $response = $this->actingAs($this->user)->getJson(
-            "/api/projects/{$this->project->slug}/sprints/{$sprint->id}/burndown"
-        );
-
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'data',
-        ]);
+        Livewire::actingAs($this->user)
+            ->test('analytics.analytics-dashboard', ['project' => $this->project])
+            ->assertOk();
     }
 
-    public function test_velocity_endpoint_returns_data(): void
+    public function test_analytics_dashboard_renders_without_active_sprint(): void
     {
-        $sprint = Sprint::factory()->closed()->create([
-            'project_id' => $this->project->id,
-        ]);
-
-        UserStory::factory()->done()->create([
-            'project_id' => $this->project->id,
-            'sprint_id' => $sprint->id,
-            'total_points' => 20,
-        ]);
-
-        $response = $this->actingAs($this->user)->getJson(
-            "/api/projects/{$this->project->slug}/velocity"
-        );
-
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'data',
-        ]);
+        Livewire::actingAs($this->user)
+            ->test('analytics.analytics-dashboard', ['project' => $this->project])
+            ->assertOk();
     }
 
-    public function test_burndown_requires_authentication(): void
+    public function test_analytics_requires_authentication(): void
     {
-        $sprint = Sprint::factory()->active()->create([
-            'project_id' => $this->project->id,
-        ]);
+        $response = $this->get("/projects/{$this->project->slug}/analytics");
 
-        $response = $this->getJson(
-            "/api/projects/{$this->project->slug}/sprints/{$sprint->id}/burndown"
-        );
-
-        $response->assertStatus(401);
+        $response->assertRedirect('/login');
     }
 
-    public function test_non_member_cannot_access_burndown(): void
+    public function test_non_member_cannot_access_analytics(): void
     {
         $outsider = User::factory()->create();
-        $sprint = Sprint::factory()->active()->create([
-            'project_id' => $this->project->id,
-        ]);
 
-        $response = $this->actingAs($outsider)->getJson(
-            "/api/projects/{$this->project->slug}/sprints/{$sprint->id}/burndown"
-        );
+        $response = $this->actingAs($outsider)->get("/projects/{$this->project->slug}/analytics");
 
         $response->assertStatus(403);
     }

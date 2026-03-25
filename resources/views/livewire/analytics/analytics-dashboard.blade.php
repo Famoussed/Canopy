@@ -9,7 +9,7 @@ use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('layouts::app')] #[Title('Analiz — Canopy')] class extends Component {
+new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class extends Component {
     public Project $project;
 
     protected \App\Services\ProjectService $projectService;

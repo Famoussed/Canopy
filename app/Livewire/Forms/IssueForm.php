@@ -26,7 +26,7 @@ class IssueForm extends Form
 
     public string $severity = 'minor';
 
-    public string $assignedTo = '';
+    public ?string $assigned_to = null;
 
     /** @return array<string, mixed> */
     public function rules(): array
@@ -45,7 +45,7 @@ class IssueForm extends Form
         $this->type = $issue->type->value;
         $this->priority = $issue->priority->value;
         $this->severity = $issue->severity->value;
-        $this->assignedTo = $issue->assigned_to ?? '';
+        $this->assigned_to = $issue->assigned_to;
     }
 
     /** @return array<string, mixed> */
@@ -57,7 +57,7 @@ class IssueForm extends Form
             'type' => $this->type,
             'priority' => $this->priority,
             'severity' => $this->severity,
-            'assigned_to' => $this->assignedTo ?: null,
+            'assigned_to' => $this->assigned_to ?: null, // null veya boş string → null
         ];
     }
 

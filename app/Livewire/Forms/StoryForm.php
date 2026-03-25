@@ -17,13 +17,13 @@ class StoryForm extends Form
     public string $description = '';
 
     #[Validate('nullable|string')]
-    public ?string $epicId = null;
+    public ?string $epic_id = null;
 
     public function setFromStory(UserStory $story): void
     {
         $this->title = $story->title;
         $this->description = $story->description ?? '';
-        $this->epicId = $story->epic_id;
+        $this->epic_id = $story->epic_id;
     }
 
     /** @return array<string, mixed> */
@@ -32,7 +32,7 @@ class StoryForm extends Form
         return [
             'title' => $this->title,
             'description' => $this->description,
-            'epic_id' => $this->epicId,
+            'epic_id' => $this->epic_id,
         ];
     }
 }

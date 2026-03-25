@@ -74,7 +74,10 @@ class ListenerWiringTest extends TestCase
      * Event::getListeners() Closure dizisi döndürür.
      * Closure'un use() parametrelerini okuyarak listener class'larını belirler.
      *
-     * @param  array<\Closure>  $listeners
+     * Laravel 10: closure captures `$listener` (full class string)
+     * Laravel 11: closure captures `$class` + `$method` separately
+     *
+     * @param  array<\Closure|string>  $listeners
      * @return array<string>
      */
     private function resolveListenerClasses(array $listeners): array
@@ -82,11 +85,45 @@ class ListenerWiringTest extends TestCase
         $classes = [];
 
         foreach ($listeners as $listener) {
+            // Already a plain string (e.g. "App\Listeners\Foo@handle")
+            if (is_string($listener)) {
+                $classes[] = explode('@', $listener)[0];
+                continue;
+            }
+
+            if (! ($listener instanceof \Closure)) {
+                continue;
+            }
+
             $reflection = new \ReflectionFunction($listener);
             $vars = $reflection->getStaticVariables();
 
+            // Laravel 10 format: use ($listener) where $listener = 'App\Listeners\Foo@handle'
             if (isset($vars['listener'])) {
-                $classes[] = $vars['listener'];
+                $value = $vars['listener'];
+                $classes[] = is_string($value)
+                    ? explode('@', $value)[0]
+                    : (is_object($value) ? get_class($value) : (string) $value);
+                continue;
+            }
+
+            // Laravel 11 format: use ($class, $method)
+            if (isset($vars['class'])) {
+                $classes[] = $vars['class'];
+                continue;
+            }
+
+            // Fallback: check for nested listener inside a wrapping closure
+            if (isset($vars['listener']) || isset($vars['class'])) {
+                continue;
+            }
+
+            // Try to find any string variable that looks like a class name
+            foreach ($vars as $var) {
+                if (is_string($var) && str_contains($var, '\\')) {
+                    $classes[] = explode('@', $var)[0];
+                    break;
+                }
             }
         }
 

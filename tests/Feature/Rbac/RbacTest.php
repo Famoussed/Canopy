@@ -5,46 +5,21 @@ declare(strict_types=1);
 namespace Tests\Feature\Rbac;
 
 use App\Enums\ProjectRole;
+use App\Exceptions\OwnerCannotBeRemovedException;
 use App\Models\Project;
+use App\Models\Task;
 use App\Models\User;
+use App\Models\UserStory;
+use App\Services\MembershipService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
  * Rol Tabanlı Erişim Kontrolü (RBAC) Testi
  *
- * Bu test sınıfı, proje içindeki farklı rollerin (Owner, Moderator, Member)
- * çeşitli işlemlere erişim yetkilerinin doğru uygulanıp uygulanmadığını test eder.
- * Her testten önce setUp() içinde bir proje ve 3 farklı rolde kullanıcı oluşturulur:
- *   - owner: Proje sahibi (Owner rolü)
- *   - moderator: Moderatör (Moderator rolü)
- *   - member: Üye (Member rolü)
- *
- * Test Edilen Senaryolar:
- *  - test_member_cannot_create_story:
- *    "Member" rolündeki kullanıcı User Story oluşturmaya çalışır.
- *    HTTP 403 dönmesi beklenir. (Member story oluşturamaz.)
- *
- *  - test_moderator_can_create_story:
- *    "Moderator" rolündeki kullanıcı User Story oluşturur.
- *    HTTP 201 dönmesi beklenir. (Moderator story oluşturabilir.)
- *
- *  - test_member_can_create_issue:
- *    "Member" rolündeki kullanıcı Issue (bug report) oluşturur.
- *    HTTP 201 dönmesi beklenir. (Member issue oluşturabilir.)
- *
- *  - test_non_member_cannot_access_project:
- *    Projeye üye olmayan bir dış kullanıcı proje içeriğine erişmeye çalışır.
- *    HTTP 403 dönmesi beklenir. (Proje üyesi olmayanlar erişemez.)
- *
- *  - test_super_admin_can_access_any_project:
- *    Super Admin rolündeki kullanıcı, üyesi olmadığı bir projeye erişir.
- *    HTTP 200 dönmesi beklenir. (Super Admin her projeye erişebilir.)
- *
- *  - test_owner_cannot_be_removed:
- *    Moderatör, proje sahibini (Owner) projeden çıkarmaya çalışır.
- *    Owner'ın project_memberships tablosunda hâlâ mevcut olması beklenir.
- *    (BR-14: Proje sahibi projeden çıkarılamaz.)
+ * Proje içindeki farklı rollerin (Owner, Moderator, Member) erişim
+ * yetkilerinin Policy ve Livewire katmanında doğru uygulandığını test eder.
  */
 class RbacTest extends TestCase
 {
@@ -77,41 +52,35 @@ class RbacTest extends TestCase
 
     public function test_member_cannot_create_story(): void
     {
-        $response = $this->actingAs($this->member)->postJson(
-            "/api/projects/{$this->project->slug}/stories",
-            ['title' => 'Test Story']
-        );
-
-        $response->assertStatus(403);
+        $this->assertFalse($this->member->can('create', [UserStory::class, $this->project]));
     }
 
     public function test_moderator_can_create_story(): void
     {
-        $response = $this->actingAs($this->moderator)->postJson(
-            "/api/projects/{$this->project->slug}/stories",
-            ['title' => 'Test Story']
-        );
-
-        $response->assertStatus(201);
+        $this->assertTrue($this->moderator->can('create', [UserStory::class, $this->project]));
     }
 
     public function test_member_can_create_issue(): void
     {
-        $response = $this->actingAs($this->member)->postJson(
-            "/api/projects/{$this->project->slug}/issues",
-            ['title' => 'Bug Report', 'type' => 'bug']
-        );
+        // Members can create issues — verify via Livewire
+        Livewire::actingAs($this->member)
+            ->test('issues.issue-list', ['project' => $this->project])
+            ->set('createForm.title', 'Bug Report')
+            ->set('createForm.type', 'bug')
+            ->call('createIssue')
+            ->assertHasNoErrors();
 
-        $response->assertStatus(201);
+        $this->assertDatabaseHas('issues', [
+            'project_id' => $this->project->id,
+            'title' => 'Bug Report',
+        ]);
     }
 
     public function test_non_member_cannot_access_project(): void
     {
         $outsider = User::factory()->create();
 
-        $response = $this->actingAs($outsider)->getJson(
-            "/api/projects/{$this->project->slug}/stories"
-        );
+        $response = $this->actingAs($outsider)->get("/projects/{$this->project->slug}/backlog");
 
         $response->assertStatus(403);
     }
@@ -120,20 +89,23 @@ class RbacTest extends TestCase
     {
         $admin = User::factory()->superAdmin()->create();
 
-        $response = $this->actingAs($admin)->getJson(
-            "/api/projects/{$this->project->slug}/stories"
-        );
+        $response = $this->actingAs($admin)->get("/projects/{$this->project->slug}/backlog");
 
         $response->assertStatus(200);
     }
 
     public function test_owner_cannot_be_removed(): void
     {
-        $response = $this->actingAs($this->moderator)->deleteJson(
-            "/api/projects/{$this->project->slug}/members/{$this->owner->id}"
-        );
+        // BR-14: Proje sahibi projeden çıkarılamaz — service throws OwnerCannotBeRemovedException
+        $service = app(MembershipService::class);
 
-        // Should fail — owner cannot be removed (BR-14)
+        try {
+            $service->removeById($this->project, $this->owner->id, $this->moderator);
+        } catch (OwnerCannotBeRemovedException $e) {
+            // Expected — owner cannot be removed
+        }
+
+        // Owner should still be a member
         $this->assertDatabaseHas('project_memberships', [
             'project_id' => $this->project->id,
             'user_id' => $this->owner->id,

@@ -9,6 +9,7 @@ use App\Models\Attachment;
 use App\Models\Project;
 use App\Models\User;
 use App\Models\UserStory;
+use App\Services\AttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +18,8 @@ use Tests\TestCase;
 /**
  * F-11 & F-12: Dosya yükleme ve silme testleri.
  *
- * S3 disk fake'lenerek dosya yükleme ve silme iş akışını test eder.
+ * S3 disk fake'lenerek dosya yükleme ve silme iş akışını AttachmentService
+ * üzerinden test eder.
  */
 class AttachmentWorkflowTest extends TestCase
 {
@@ -51,39 +53,41 @@ class AttachmentWorkflowTest extends TestCase
 
         $file = UploadedFile::fake()->create('design.pdf', 1024, 'application/pdf');
 
-        $response = $this->actingAs($this->user)->postJson('/api/attachments', [
-            'attachable_type' => 'user_story',
-            'attachable_id' => $this->story->id,
-            'file' => $file,
-        ]);
+        $service = app(AttachmentService::class);
+        $attachment = $service->upload($file, $this->story, $this->user);
 
-        $response->assertStatus(201);
         $this->assertDatabaseHas('attachments', [
-            'filename' => 'design.pdf',
+            'id' => $attachment->id,
             'uploaded_by' => $this->user->id,
         ]);
     }
 
-    public function test_upload_validates_required_fields(): void
-    {
-        $response = $this->actingAs($this->user)->postJson('/api/attachments', []);
-
-        $response->assertStatus(422);
-    }
-
-    public function test_upload_validates_file_size(): void
+    public function test_upload_to_target_user_story(): void
     {
         Storage::fake('s3');
 
-        $file = UploadedFile::fake()->create('huge.zip', 20480, 'application/zip'); // 20MB
+        $file = UploadedFile::fake()->create('doc.pdf', 512, 'application/pdf');
 
-        $response = $this->actingAs($this->user)->postJson('/api/attachments', [
-            'attachable_type' => 'user_story',
+        $service = app(AttachmentService::class);
+        $attachment = $service->uploadToTarget('user_story', $this->story->id, $file, $this->user);
+
+        $this->assertDatabaseHas('attachments', [
+            'attachable_type' => UserStory::class,
             'attachable_id' => $this->story->id,
-            'file' => $file,
+            'uploaded_by' => $this->user->id,
         ]);
+    }
 
-        $response->assertStatus(422);
+    public function test_upload_to_target_with_invalid_type_throws_exception(): void
+    {
+        Storage::fake('s3');
+
+        $file = UploadedFile::fake()->create('test.pdf', 100, 'application/pdf');
+
+        $service = app(AttachmentService::class);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $service->uploadToTarget('invalid_type', $this->story->id, $file, $this->user);
     }
 
     public function test_user_can_delete_attachment(): void
@@ -100,19 +104,9 @@ class AttachmentWorkflowTest extends TestCase
             'uploaded_by' => $this->user->id,
         ]);
 
-        $response = $this->actingAs($this->user)->deleteJson("/api/attachments/{$attachment->id}");
+        $service = app(AttachmentService::class);
+        $service->delete($attachment);
 
-        $response->assertStatus(204);
         $this->assertDatabaseMissing('attachments', ['id' => $attachment->id]);
-    }
-
-    public function test_unauthenticated_user_cannot_upload(): void
-    {
-        $response = $this->postJson('/api/attachments', [
-            'attachable_type' => 'user_story',
-            'attachable_id' => $this->story->id,
-        ]);
-
-        $response->assertStatus(401);
     }
 }

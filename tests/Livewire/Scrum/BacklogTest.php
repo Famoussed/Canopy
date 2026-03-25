@@ -79,7 +79,7 @@ class BacklogTest extends TestCase
     {
         Livewire::actingAs($this->user)
             ->test('scrum.backlog', ['project' => $this->project])
-            ->set('newStoryTitle', 'Yeni Test Story')
+            ->set('form.title', 'Yeni Test Story')
             ->call('createStory');
 
         $this->assertDatabaseHas('user_stories', [
@@ -93,18 +93,18 @@ class BacklogTest extends TestCase
     {
         Livewire::actingAs($this->user)
             ->test('scrum.backlog', ['project' => $this->project])
-            ->set('newStoryTitle', '')
+            ->set('form.title', '')
             ->call('createStory')
-            ->assertHasErrors(['newStoryTitle']);
+            ->assertHasErrors(['form.title']);
     }
 
     public function test_create_story_resets_form(): void
     {
         Livewire::actingAs($this->user)
             ->test('scrum.backlog', ['project' => $this->project])
-            ->set('newStoryTitle', 'Reset Test')
+            ->set('form.title', 'Reset Test')
             ->call('createStory')
-            ->assertSet('newStoryTitle', '')
+            ->assertSet('form.title', '')
             ->assertSet('showCreateForm', false);
     }
 
@@ -160,10 +160,12 @@ class BacklogTest extends TestCase
             'order' => 2,
         ]);
 
+        // Move story2 (currently at position 1) to position 0 (top)
         Livewire::actingAs($this->user)
             ->test('scrum.backlog', ['project' => $this->project])
-            ->call('reorder', [$story2->id, $story1->id]);
+            ->call('reorder', $story2->id, 0);
 
+        // story2 is now first, story1 is second
         $this->assertEquals(1, $story2->fresh()->order);
         $this->assertEquals(2, $story1->fresh()->order);
     }

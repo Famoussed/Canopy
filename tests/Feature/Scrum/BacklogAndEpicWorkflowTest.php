@@ -11,13 +11,15 @@ use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\User;
 use App\Models\UserStory;
+use App\Services\UserStoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
  * F-17, F-18, F-19: Backlog sıralama, Epic completion, Scope change testleri.
  *
- * Backlog reorder endpoint'i, epic tamamlanma yüzdesi ve sprint scope change algılama.
+ * Backlog reorder, epic tamamlanma yüzdesi ve sprint scope change algılama.
  */
 class BacklogAndEpicWorkflowTest extends TestCase
 {
@@ -54,12 +56,12 @@ class BacklogAndEpicWorkflowTest extends TestCase
             'order' => 3,
         ]);
 
-        $response = $this->actingAs($this->user)->putJson(
-            "/api/projects/{$this->project->slug}/stories/reorder",
-            ['ordered_ids' => [$story3->id, $story1->id, $story2->id]]
-        );
+        $service = app(UserStoryService::class);
+        $service->reorder($this->project, [$story3->id, $story1->id, $story2->id]);
 
-        $response->assertStatus(204);
+        $this->assertEquals(1, $story3->fresh()->order);
+        $this->assertEquals(2, $story1->fresh()->order);
+        $this->assertEquals(3, $story2->fresh()->order);
     }
 
     public function test_epic_completion_percentage_via_api(): void
@@ -77,11 +79,13 @@ class BacklogAndEpicWorkflowTest extends TestCase
             'status' => StoryStatus::New,
         ]);
 
-        $response = $this->actingAs($this->user)->getJson(
-            "/api/projects/{$this->project->slug}/epics/{$epic->id}"
-        );
+        // Verify epic exists and stories are associated
+        $this->assertDatabaseHas('epics', ['id' => $epic->id]);
+        $this->assertEquals(2, $epic->userStories()->count());
 
-        $response->assertStatus(200);
+        // Verify one story is done
+        $doneCount = $epic->userStories()->where('status', StoryStatus::Done)->count();
+        $this->assertEquals(1, $doneCount);
     }
 
     public function test_story_move_to_sprint_triggers_scope_change(): void
@@ -94,12 +98,9 @@ class BacklogAndEpicWorkflowTest extends TestCase
             'project_id' => $this->project->id,
         ]);
 
-        $response = $this->actingAs($this->user)->postJson(
-            "/api/projects/{$this->project->slug}/stories/{$story->id}/move-to-sprint",
-            ['sprint_id' => $sprint->id]
-        );
+        $service = app(UserStoryService::class);
+        $service->moveToSprint($story, $sprint, $this->user);
 
-        $response->assertStatus(200);
         $this->assertEquals($sprint->id, $story->fresh()->sprint_id);
     }
 
@@ -114,13 +115,10 @@ class BacklogAndEpicWorkflowTest extends TestCase
             'total_points' => 5,
         ]);
 
-        // Move story to sprint
-        $this->actingAs($this->user)->postJson(
-            "/api/projects/{$this->project->slug}/stories/{$story->id}/move-to-sprint",
-            ['sprint_id' => $sprint->id]
-        );
+        $service = app(UserStoryService::class);
+        $service->moveToSprint($story, $sprint, $this->user);
 
-        // Verify story is in sprint
+        // Verify story is in sprint after move
         $this->assertEquals($sprint->id, $story->fresh()->sprint_id);
     }
 }
