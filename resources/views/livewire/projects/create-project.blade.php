@@ -6,7 +6,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('layouts::app')] #[Title('Yeni Proje — Canopy')] class extends Component {
+new #[Layout('components.layouts.app')] #[Title('Yeni Proje — Canopy')] class extends Component {
     public ProjectForm $form;
 
     public function create(ProjectService $service): void

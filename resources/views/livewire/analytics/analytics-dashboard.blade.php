@@ -5,6 +5,7 @@ use App\Services\BurndownService;
 use App\Services\VelocityService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -29,17 +30,10 @@ new #[Layout('layouts::app')] #[Title('Analiz — Canopy')] class extends Compon
         $this->project = $project;
     }
 
-    /** @return array<string, string> */
-    public function getListeners(): array
-    {
-        return [
-            "echo-private:project.{$this->project->id},.story.status-changed" => 'refreshAnalytics',
-            "echo-private:project.{$this->project->id},.task.status-changed"  => 'refreshAnalytics',
-            "echo-private:project.{$this->project->id},.sprint.started"       => 'refreshAnalytics',
-            "echo-private:project.{$this->project->id},.sprint.closed"        => 'refreshAnalytics',
-        ];
-    }
-
+    #[On('echo-private:project.{project.id},.story.status-changed')]
+    #[On('echo-private:project.{project.id},.task.status-changed')]
+    #[On('echo-private:project.{project.id},.sprint.started')]
+    #[On('echo-private:project.{project.id},.sprint.closed')]
     public function refreshAnalytics(): void
     {
         unset($this->activeSprint, $this->velocityData, $this->burndownData);

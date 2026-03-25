@@ -4,6 +4,7 @@ use App\Enums\StoryStatus;
 use App\Models\Project;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -15,19 +16,12 @@ new #[Layout('layouts::app')] #[Title('Proje Dashboard — Canopy')] class exten
         $this->project = $project;
     }
 
-    /** @return array<string, string> */
-    public function getListeners(): array
-    {
-        return [
-            "echo-private:project.{$this->project->id},.story.status-changed" => 'refreshDashboard',
-            "echo-private:project.{$this->project->id},.task.status-changed"  => 'refreshDashboard',
-            "echo-private:project.{$this->project->id},.sprint.started"       => 'refreshDashboard',
-            "echo-private:project.{$this->project->id},.sprint.closed"        => 'refreshDashboard',
-            "echo-private:project.{$this->project->id},.issue.created"        => 'refreshDashboard',
-            "echo-private:project.{$this->project->id},.issue.status-changed" => 'refreshDashboard',
-        ];
-    }
-
+    #[On('echo-private:project.{project.id},.story.status-changed')]
+    #[On('echo-private:project.{project.id},.task.status-changed')]
+    #[On('echo-private:project.{project.id},.sprint.started')]
+    #[On('echo-private:project.{project.id},.sprint.closed')]
+    #[On('echo-private:project.{project.id},.issue.created')]
+    #[On('echo-private:project.{project.id},.issue.status-changed')]
     public function refreshDashboard(): void
     {
         unset($this->activeSprint, $this->backlogCount, $this->totalStories, $this->doneStories, $this->openIssues, $this->recentStories);

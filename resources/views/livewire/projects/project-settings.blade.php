@@ -8,6 +8,7 @@ use App\Services\MembershipService;
 use App\Services\ProjectService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -29,14 +30,7 @@ new #[Layout('layouts::app')] #[Title('Proje Ayarları — Canopy')] class exten
         $this->form->setFromProject($project);
     }
 
-    /** @return array<string, string> */
-    public function getListeners(): array
-    {
-        return [
-            "echo-private:project.{$this->project->id},.member.added" => 'refreshMembers',
-        ];
-    }
-
+    #[On('echo-private:project.{project.id},.member.added')]
     public function refreshMembers(): void
     {
         $this->project->refresh();

@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Services\EpicService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -25,15 +26,8 @@ new #[Layout('layouts::app')] #[Title('Epic\'ler — Canopy')] class extends Com
         $this->project = $project;
     }
 
-    /** @return array<string, string> */
-    public function getListeners(): array
-    {
-        return [
-            "echo-private:project.{$this->project->id},.story.created"        => 'refreshEpics',
-            "echo-private:project.{$this->project->id},.story.status-changed" => 'refreshEpics',
-        ];
-    }
-
+    #[On('echo-private:project.{project.id},.story.created')]
+    #[On('echo-private:project.{project.id},.story.status-changed')]
     public function refreshEpics(): void
     {
         unset($this->epics);

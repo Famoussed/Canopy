@@ -8,6 +8,7 @@ use App\Models\Sprint;
 use App\Services\SprintService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -27,16 +28,9 @@ new #[Layout('layouts::app')] #[Title('Sprintler — Canopy')] class extends Com
         $this->project = $project;
     }
 
-    /** @return array<string, string> */
-    public function getListeners(): array
-    {
-        return [
-            "echo-private:project.{$this->project->id},.sprint.started"      => 'refreshSprints',
-            "echo-private:project.{$this->project->id},.sprint.closed"       => 'refreshSprints',
-            "echo-private:project.{$this->project->id},.sprint.scope-changed" => 'refreshSprints',
-        ];
-    }
-
+    #[On('echo-private:project.{project.id},.sprint.started')]
+    #[On('echo-private:project.{project.id},.sprint.closed')]
+    #[On('echo-private:project.{project.id},.sprint.scope-changed')]
     public function refreshSprints(): void
     {
         unset($this->sprints);

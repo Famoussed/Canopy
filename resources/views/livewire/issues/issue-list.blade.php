@@ -11,6 +11,7 @@ use App\Services\IssueService;
 use Livewire\Attributes\Async;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -51,15 +52,8 @@ new #[Layout('layouts::app')] #[Title('Issue\'lar — Canopy')] class extends Co
         $this->project = $project;
     }
 
-    /** @return array<string, string> */
-    public function getListeners(): array
-    {
-        return [
-            "echo-private:project.{$this->project->id},.issue.created"        => 'refreshIssues',
-            "echo-private:project.{$this->project->id},.issue.status-changed" => 'refreshIssues',
-        ];
-    }
-
+    #[On('echo-private:project.{project.id},.issue.created')]
+    #[On('echo-private:project.{project.id},.issue.status-changed')]
     public function refreshIssues(): void
     {
         unset($this->issues, $this->counts);

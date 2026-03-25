@@ -2,6 +2,7 @@
 
 use App\Models\Notification;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 new class extends Component {
@@ -18,14 +19,7 @@ new class extends Component {
         $this->unreadCount = auth()->user()->notifications()->unread()->count();
     }
 
-    /** @return array<string, string> */
-    public function getListeners(): array
-    {
-        return [
-            "echo-private:user.{$this->userId},.notification.received" => 'incrementUnreadCount',
-        ];
-    }
-
+    #[On('echo-private:user.{userId},.notification.received')]
     public function incrementUnreadCount(): void
     {
         $this->unreadCount++;

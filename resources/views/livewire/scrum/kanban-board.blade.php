@@ -9,6 +9,7 @@ use App\Services\TaskService;
 use App\Services\UserStoryService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -28,18 +29,11 @@ new #[Layout('layouts::app')] #[Title('Kanban Board — Canopy')] class extends 
         }
     }
 
-    /** @return array<string, string> */
-    public function getListeners(): array
-    {
-        return [
-            "echo-private:project.{$this->project->id},.story.status-changed" => 'refreshBoard',
-            "echo-private:project.{$this->project->id},.task.status-changed"  => 'refreshBoard',
-            "echo-private:project.{$this->project->id},.story.created"        => 'refreshBoard',
-            "echo-private:project.{$this->project->id},.sprint.started"       => 'refreshBoard',
-            "echo-private:project.{$this->project->id},.sprint.closed"        => 'refreshBoard',
-        ];
-    }
-
+    #[On('echo-private:project.{project.id},.story.status-changed')]
+    #[On('echo-private:project.{project.id},.task.status-changed')]
+    #[On('echo-private:project.{project.id},.story.created')]
+    #[On('echo-private:project.{project.id},.sprint.started')]
+    #[On('echo-private:project.{project.id},.sprint.closed')]
     public function refreshBoard(): void
     {
         unset($this->sprint, $this->columns, $this->sprints);

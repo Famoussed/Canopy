@@ -5,7 +5,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('layouts::app')] #[Title('Projelerim — Canopy')] class extends Component {
+new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class extends Component {
     public function logout(): mixed
     {
         auth()->logout();

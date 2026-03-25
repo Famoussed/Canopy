@@ -10,6 +10,7 @@ use App\Services\UserStoryService;
 use Livewire\Attributes\Async;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -29,15 +30,8 @@ new #[Layout('layouts::app')] #[Title('Story Detay — Canopy')] class extends C
     /** @var array<string, string> */
     public array $estimationPoints = [];
 
-    /** @return array<string, string> */
-    public function getListeners(): array
-    {
-        return [
-            "echo-private:project.{$this->project->id},.task.status-changed" => 'refreshStoryTasks',
-            "echo-private:project.{$this->project->id},.task.assigned"       => 'refreshStoryTasks',
-        ];
-    }
-
+    #[On('echo-private:project.{project.id},.task.status-changed')]
+    #[On('echo-private:project.{project.id},.task.assigned')]
     public function refreshStoryTasks(): void
     {
         $this->story->load(['tasks.assignee', 'epic', 'sprint', 'creator', 'storyPoints', 'attachments']);
