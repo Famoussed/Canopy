@@ -1,33 +1,21 @@
 <?php
 
+use App\Livewire\Forms\ProjectForm;
 use App\Services\ProjectService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] #[Title('Yeni Proje — Canopy')] class extends Component {
-    public string $name = '';
-
-    public string $description = '';
-
-    /** @var array<string, string[]> */
-    protected function rules(): array
-    {
-        return [
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:1000'],
-        ];
-    }
+new #[Layout('layouts::app')] #[Title('Yeni Proje — Canopy')] class extends Component {
+    public ProjectForm $form;
 
     public function create(ProjectService $service): void
     {
-        $this->validate();
+        $this->form->validate();
 
-        $project = $service->create([
-            'name' => $this->name,
-            'description' => $this->description,
-        ], auth()->user());
+        $project = $service->create($this->form->toArray(), auth()->user());
 
+        $this->form->reset();
         $this->redirect("/projects/{$project->slug}/backlog", navigate: true);
     }
 }
@@ -77,7 +65,7 @@ new #[Layout('components.layouts.app')] #[Title('Yeni Proje — Canopy')] class 
 
                 <form wire:submit="create" class="space-y-4">
                     <flux:input
-                        wire:model="name"
+                        wire:model="form.name"
                         label="Proje Adı"
                         placeholder="Proje adını girin"
                         required
@@ -85,7 +73,7 @@ new #[Layout('components.layouts.app')] #[Title('Yeni Proje — Canopy')] class 
                     />
 
                     <flux:textarea
-                        wire:model="description"
+                        wire:model="form.description"
                         label="Açıklama"
                         placeholder="Projenin kısa bir açıklaması (opsiyonel)"
                         rows="3"

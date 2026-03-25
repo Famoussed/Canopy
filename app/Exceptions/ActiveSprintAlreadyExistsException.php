@@ -16,13 +16,4 @@ class ActiveSprintAlreadyExistsException extends Exception
             422,
         );
     }
-
-    public function render(): \Illuminate\Http\JsonResponse
-    {
-        return response()->json([
-            'error' => 'active_sprint_exists',
-            'message' => $this->getMessage(),
-            'project_id' => $this->projectId,
-        ], 422);
-    }
 }

@@ -6,7 +6,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.guest')] #[Title('Giriş Yap — Canopy')] class extends Component {
+new #[Layout('layouts::guest')] #[Title('Giriş Yap — Canopy')] class extends Component {
     public string $email = '';
 
     public string $password = '';

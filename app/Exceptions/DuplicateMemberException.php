@@ -17,12 +17,4 @@ class DuplicateMemberException extends Exception
             422,
         );
     }
-
-    public function render(): \Illuminate\Http\JsonResponse
-    {
-        return response()->json([
-            'error' => 'duplicate_member',
-            'message' => $this->getMessage(),
-        ], 422);
-    }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Forms\EpicForm;
 use App\Models\Epic;
 use App\Models\Project;
 use App\Services\EpicService;
@@ -8,24 +9,16 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class extends Component {
+new #[Layout('layouts::app')] #[Title('Epic\'ler — Canopy')] class extends Component {
     public Project $project;
 
     public bool $showCreateForm = false;
 
-    public string $title = '';
+    public EpicForm $createForm;
 
-    public string $description = '';
-
-    public string $color = '#6366F1';
+    public EpicForm $editForm;
 
     public ?string $editingEpicId = null;
-
-    public string $editTitle = '';
-
-    public string $editDescription = '';
-
-    public string $editColor = '';
 
     public function mount(Project $project): void
     {
@@ -48,45 +41,27 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
 
     public function createEpic(EpicService $service): void
     {
-        $this->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'color' => 'required|string|max:7',
-        ]);
+        $this->createForm->validate();
 
-        $service->create([
-            'title' => $this->title,
-            'description' => $this->description,
-            'color' => $this->color,
-        ], $this->project, auth()->user());
+        $service->create($this->createForm->toArray(), $this->project, auth()->user());
 
-        $this->reset(['title', 'description', 'color', 'showCreateForm']);
-        $this->color = '#6366F1';
+        $this->createForm->resetWithDefaults();
+        $this->showCreateForm = false;
     }
 
     public function editEpic(string $epicId): void
     {
         $epic = Epic::findOrFail($epicId);
         $this->editingEpicId = $epicId;
-        $this->editTitle = $epic->title;
-        $this->editDescription = $epic->description ?? '';
-        $this->editColor = $epic->color ?? '#6366F1';
+        $this->editForm->setFromEpic($epic);
     }
 
     public function updateEpic(EpicService $service): void
     {
-        $this->validate([
-            'editTitle' => 'required|string|max:255',
-            'editDescription' => 'nullable|string',
-            'editColor' => 'required|string|max:7',
-        ]);
+        $this->editForm->validate();
 
         $epic = Epic::findOrFail($this->editingEpicId);
-        $service->update($epic, [
-            'title' => $this->editTitle,
-            'description' => $this->editDescription,
-            'color' => $this->editColor,
-        ]);
+        $service->update($epic, $this->editForm->toArray());
 
         $this->editingEpicId = null;
     }
@@ -116,14 +91,14 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
     </div>
 
     @if ($showCreateForm)
-        <flux:card class="mb-6">
+        <flux:card class="mb-6" wire:transition>
             <flux:heading class="mb-4">Yeni Epic Oluştur</flux:heading>
             <form wire:submit="createEpic" class="space-y-4">
-                <flux:input wire:model="title" label="Epic Başlığı" placeholder="Kullanıcı Yönetimi" required />
-                <flux:textarea wire:model="description" label="Açıklama" rows="3" placeholder="Epic açıklaması..." />
+                <flux:input wire:model="createForm.title" label="Epic Başlığı" placeholder="Kullanıcı Yönetimi" required />
+                <flux:textarea wire:model="createForm.description" label="Açıklama" rows="3" placeholder="Epic açıklaması..." />
                 <div>
                     <flux:text class="text-sm font-medium mb-1">Renk</flux:text>
-                    <input type="color" wire:model="color" class="h-10 w-20 rounded cursor-pointer border border-zinc-200 dark:border-zinc-700" />
+                    <input type="color" wire:model="createForm.color" class="h-10 w-20 rounded cursor-pointer border border-zinc-200 dark:border-zinc-700" />
                 </div>
                 <div class="flex gap-2">
                     <flux:button type="submit" variant="primary">Oluştur</flux:button>
@@ -148,11 +123,11 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
 
                     @if ($editingEpicId === $epic->id)
                         <form wire:submit="updateEpic" class="space-y-3 pt-2">
-                            <flux:input wire:model="editTitle" label="Başlık" required />
-                            <flux:textarea wire:model="editDescription" label="Açıklama" rows="2" />
+                            <flux:input wire:model="editForm.title" label="Başlık" required />
+                            <flux:textarea wire:model="editForm.description" label="Açıklama" rows="2" />
                             <div>
                                 <flux:text class="text-sm font-medium mb-1">Renk</flux:text>
-                                <input type="color" wire:model="editColor" class="h-8 w-16 rounded cursor-pointer border border-zinc-200 dark:border-zinc-700" />
+                                <input type="color" wire:model="editForm.color" class="h-8 w-16 rounded cursor-pointer border border-zinc-200 dark:border-zinc-700" />
                             </div>
                             <div class="flex gap-2">
                                 <flux:button type="submit" variant="primary" size="sm">Kaydet</flux:button>

@@ -17,13 +17,4 @@ class TaskNotAssignedException extends Exception
             422,
         );
     }
-
-    public function render(): \Illuminate\Http\JsonResponse
-    {
-        return response()->json([
-            'error' => 'task_not_assigned',
-            'message' => $this->getMessage(),
-            'task_id' => $this->task->id,
-        ], 422);
-    }
 }

@@ -2,6 +2,7 @@
 
 use App\Enums\SprintStatus;
 use App\Exceptions\ActiveSprintAlreadyExistsException;
+use App\Livewire\Forms\SprintForm;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Services\SprintService;
@@ -10,24 +11,16 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class extends Component {
+new #[Layout('layouts::app')] #[Title('Sprintler — Canopy')] class extends Component {
     public Project $project;
 
     public bool $showCreateForm = false;
 
-    public string $name = '';
-
-    public string $startDate = '';
-
-    public string $endDate = '';
+    public SprintForm $createForm;
 
     public ?string $editingSprintId = null;
 
-    public string $editName = '';
-
-    public string $editStartDate = '';
-
-    public string $editEndDate = '';
+    public SprintForm $editForm;
 
     public function mount(Project $project): void
     {
@@ -51,44 +44,27 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
 
     public function createSprint(SprintService $service): void
     {
-        $this->validate([
-            'name' => 'required|string|max:255',
-            'startDate' => 'required|date',
-            'endDate' => 'required|date|after:startDate',
-        ]);
+        $this->createForm->validate();
 
-        $service->create([
-            'name' => $this->name,
-            'start_date' => $this->startDate,
-            'end_date' => $this->endDate,
-        ], $this->project);
+        $service->create($this->createForm->toArray(), $this->project);
 
-        $this->reset(['name', 'startDate', 'endDate', 'showCreateForm']);
+        $this->createForm->reset();
+        $this->showCreateForm = false;
     }
 
     public function editSprint(string $sprintId): void
     {
         $sprint = Sprint::findOrFail($sprintId);
         $this->editingSprintId = $sprintId;
-        $this->editName = $sprint->name;
-        $this->editStartDate = $sprint->start_date->format('Y-m-d');
-        $this->editEndDate = $sprint->end_date->format('Y-m-d');
+        $this->editForm->setFromSprint($sprint);
     }
 
     public function updateSprint(SprintService $service): void
     {
-        $this->validate([
-            'editName' => 'required|string|max:255',
-            'editStartDate' => 'required|date',
-            'editEndDate' => 'required|date|after:editStartDate',
-        ]);
+        $this->editForm->validate();
 
         $sprint = Sprint::findOrFail($this->editingSprintId);
-        $service->update($sprint, [
-            'name' => $this->editName,
-            'start_date' => $this->editStartDate,
-            'end_date' => $this->editEndDate,
-        ]);
+        $service->update($sprint, $this->editForm->toArray());
 
         $this->editingSprintId = null;
     }
@@ -147,13 +123,13 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
     @endsession
 
     @if ($showCreateForm)
-        <flux:card class="mb-6">
+        <flux:card class="mb-6" wire:transition>
             <flux:heading class="mb-4">Yeni Sprint Oluştur</flux:heading>
             <form wire:submit="createSprint" class="space-y-4">
-                <flux:input wire:model="name" label="Sprint Adı" placeholder="Sprint 1" required />
+                <flux:input wire:model="createForm.name" label="Sprint Adı" placeholder="Sprint 1" required />
                 <div class="grid grid-cols-2 gap-4">
-                    <flux:input wire:model="startDate" label="Başlangıç" type="date" required />
-                    <flux:input wire:model="endDate" label="Bitiş" type="date" required />
+                    <flux:input wire:model="createForm.startDate" label="Başlangıç" type="date" required />
+                    <flux:input wire:model="createForm.endDate" label="Bitiş" type="date" required />
                 </div>
                 <div class="flex gap-2">
                     <flux:button type="submit" variant="primary">Oluştur</flux:button>
@@ -175,10 +151,10 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
                 <flux:card wire:key="sprint-{{ $sprint->id }}">
                     @if ($editingSprintId === $sprint->id)
                         <form wire:submit="updateSprint" class="space-y-4">
-                            <flux:input wire:model="editName" label="Sprint Adı" required />
+                            <flux:input wire:model="editForm.name" label="Sprint Adı" required />
                             <div class="grid grid-cols-2 gap-4">
-                                <flux:input wire:model="editStartDate" label="Başlangıç" type="date" required />
-                                <flux:input wire:model="editEndDate" label="Bitiş" type="date" required />
+                                <flux:input wire:model="editForm.startDate" label="Başlangıç" type="date" required />
+                                <flux:input wire:model="editForm.endDate" label="Bitiş" type="date" required />
                             </div>
                             <div class="flex gap-2">
                                 <flux:button type="submit" variant="primary" size="sm">Kaydet</flux:button>

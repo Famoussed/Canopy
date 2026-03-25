@@ -7,7 +7,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] class extends Component {
+new #[Layout('layouts::app')] #[Title('Proje Dashboard — Canopy')] class extends Component {
     public Project $project;
 
     public function mount(Project $project): void
@@ -85,6 +85,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
     <flux:heading size="xl" class="mb-6">{{ $project->name }}</flux:heading>
 
     {{-- Stat Cards --}}
+    @island(name: 'dashboard-stats')
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <x-stat-card
             label="Backlog"
@@ -107,6 +108,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
             icon="exclamation-triangle"
         />
     </div>
+    @endisland
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {{-- Active Sprint --}}
@@ -132,6 +134,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
         </flux:card>
 
         {{-- Recent Stories --}}
+        @island(name: 'recent-stories')
         <flux:card>
             <flux:heading size="lg" class="mb-4">Son Eklenen Story'ler</flux:heading>
             @if ($this->recentStories->isEmpty())
@@ -153,5 +156,6 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
                 </div>
             @endif
         </flux:card>
+        @endisland
     </div>
 </x-project-layout>

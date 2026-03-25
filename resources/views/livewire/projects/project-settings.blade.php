@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ProjectRole;
+use App\Livewire\Forms\ProjectForm;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\MembershipService;
@@ -10,12 +11,10 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] class extends Component {
+new #[Layout('layouts::app')] #[Title('Proje Ayarları — Canopy')] class extends Component {
     public Project $project;
 
-    public string $projectName = '';
-
-    public string $projectDescription = '';
+    public ProjectForm $form;
 
     // Member management
     public string $newMemberEmail = '';
@@ -27,8 +26,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
     public function mount(Project $project): void
     {
         $this->project = $project;
-        $this->projectName = $project->name;
-        $this->projectDescription = $project->description ?? '';
+        $this->form->setFromProject($project);
     }
 
     /** @return array<string, string> */
@@ -46,15 +44,9 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
 
     public function saveProject(\App\Services\ProjectService $service): void
     {
-        $this->validate([
-            'projectName' => 'required|string|max:255',
-            'projectDescription' => 'nullable|string|max:1000',
-        ]);
+        $this->form->validate();
 
-        $service->update($this->project, [
-            'name' => $this->projectName,
-            'description' => $this->projectDescription,
-        ]);
+        $service->update($this->project, $this->form->toArray());
 
         $this->project->refresh();
         session()->flash('success', 'Proje bilgileri güncellendi.');
@@ -137,8 +129,8 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
     <flux:card class="mb-6">
         <flux:heading class="mb-4">Genel Bilgiler</flux:heading>
         <form wire:submit="saveProject" class="space-y-4">
-            <flux:input wire:model="projectName" label="Proje Adı" required />
-            <flux:textarea wire:model="projectDescription" label="Açıklama" rows="3" placeholder="Proje hakkında kısa açıklama..." />
+            <flux:input wire:model="form.name" label="Proje Adı" required />
+            <flux:textarea wire:model="form.description" label="Açıklama" rows="3" placeholder="Proje hakkında kısa açıklama..." />
             <flux:button type="submit" variant="primary">Kaydet</flux:button>
         </form>
     </flux:card>

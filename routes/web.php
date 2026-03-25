@@ -30,7 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/projects/create', 'projects.create-project')->name('projects.create');
 
     // Project-scoped routes
-    Route::prefix('/projects/{project:slug}')->group(function () {
+    Route::prefix('/projects/{project:slug}')->middleware('project.member')->group(function () {
         Route::livewire('/', 'projects.project-dashboard')->name('projects.show');
         Route::livewire('/backlog', 'scrum.backlog')->name('projects.backlog');
         Route::livewire('/board', 'scrum.kanban-board')->name('projects.board');

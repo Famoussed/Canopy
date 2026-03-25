@@ -1,27 +1,30 @@
 <?php
 
 use App\Enums\TaskStatus;
+use App\Livewire\Forms\StoryForm;
+use App\Livewire\Forms\TaskForm;
 use App\Models\Project;
 use App\Models\UserStory;
 use App\Services\TaskService;
 use App\Services\UserStoryService;
+use Livewire\Attributes\Async;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class extends Component {
+new #[Layout('layouts::app')] #[Title('Story Detay — Canopy')] class extends Component {
     public Project $project;
 
     public UserStory $story;
 
-    public string $newTaskTitle = '';
+    public TaskForm $taskForm;
+
+    public StoryForm $storyForm;
 
     public bool $showTaskForm = false;
 
     public bool $editingTitle = false;
-
-    public string $editTitle = '';
 
     /** @var array<string, string> */
     public array $estimationPoints = [];
@@ -40,16 +43,13 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         $this->story->load(['tasks.assignee', 'epic', 'sprint', 'creator', 'storyPoints', 'attachments']);
     }
 
-    public string $editDescription = '';
-
     public ?string $selectedEpicId = null;
 
     public function mount(Project $project, UserStory $story): void
     {
         $this->project = $project;
         $this->story = $story;
-        $this->editTitle = $story->title;
-        $this->editDescription = $story->description ?? '';
+        $this->storyForm->setFromStory($story);
         $this->selectedEpicId = $story->epic_id;
 
         // Mevcut puanları forma yükle
@@ -60,6 +60,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
     }
 
+    #[Async]
     public function saveEstimation(\App\Services\UserStoryService $service): void
     {
         $this->authorize('estimate', $this->story);
@@ -90,22 +91,24 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             ->pluck('user');
     }
 
+    #[Async]
     public function saveTitle(\App\Services\UserStoryService $service): void
     {
-        $this->validate(['editTitle' => 'required|string|max:255']);
+        $this->storyForm->validate(['title' => 'required|string|max:255']);
 
         $service->update($this->story, [
-            'title' => $this->editTitle,
+            'title' => $this->storyForm->title,
         ]);
 
         $this->story->refresh();
         $this->editingTitle = false;
     }
 
+    #[Async]
     public function saveDescription(\App\Services\UserStoryService $service): void
     {
         $service->update($this->story, [
-            'description' => $this->editDescription,
+            'description' => $this->storyForm->description,
         ]);
 
         $this->story->refresh();
@@ -127,7 +130,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
 
     public function createTask(TaskService $service): void
     {
-        $this->validate(['newTaskTitle' => 'required|string|max:255']);
+        $this->taskForm->validate();
 
         try {
             $this->authorize('create', [\App\Models\Task::class, $this->story->project]);
@@ -138,10 +141,10 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
 
         $service->create([
-            'title' => $this->newTaskTitle,
+            'title' => $this->taskForm->title,
         ], $this->story, auth()->user());
 
-        $this->newTaskTitle = '';
+        $this->taskForm->reset();
         $this->showTaskForm = false;
         $this->story->refresh();
     }
@@ -196,6 +199,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
     }
 
+    #[Async]
     public function toggleTaskStatus(string $taskId, TaskService $service): void
     {
         $task = $service->findById($taskId);
@@ -237,13 +241,14 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             <div>
                 @if ($editingTitle)
                     <form wire:submit="saveTitle" class="flex items-center gap-2">
-                        <flux:input wire:model="editTitle" class="text-xl font-bold" autofocus />
+                        <flux:input wire:model="storyForm.title" class="text-xl font-bold" autofocus />
                         <flux:button type="submit" variant="primary" size="sm">Kaydet</flux:button>
                         <flux:button variant="ghost" size="sm" wire:click="$set('editingTitle', false)">İptal</flux:button>
                     </form>
                 @else
                     <flux:heading size="xl" class="cursor-pointer hover:text-indigo-600 transition-colors" wire:click="$set('editingTitle', true)">
                         {{ $story->title }}
+                        <span wire:show="$dirty('storyForm.title')" class="text-amber-500 text-xs ml-2">Kaydedilmemiş</span>
                     </flux:heading>
                 @endif
             </div>
@@ -252,7 +257,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             <flux:card>
                 <flux:heading class="mb-2">Açıklama</flux:heading>
                 <flux:textarea
-                    wire:model.blur="editDescription"
+                    wire:model.live.blur="storyForm.description"
                     wire:change="saveDescription"
                     placeholder="Story açıklaması ekleyin..."
                     rows="4"
@@ -260,6 +265,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             </flux:card>
 
             {{-- Tasks --}}
+            @island(name: 'story-tasks')
             <flux:card>
                 <div class="flex items-center justify-between mb-4">
                     <flux:heading>
@@ -276,9 +282,9 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
                 </div>
 
                 @if ($showTaskForm)
-                    <form wire:submit="createTask" class="flex items-end gap-3 mb-4">
+                    <form wire:submit="createTask" class="flex items-end gap-3 mb-4" wire:transition>
                         <div class="flex-1">
-                            <flux:input wire:model="newTaskTitle" placeholder="Task başlığı" autofocus required />
+                            <flux:input wire:model="taskForm.title" placeholder="Task başlığı" autofocus required />
                         </div>
                         <flux:button type="submit" variant="primary" size="sm">Ekle</flux:button>
                         <flux:button variant="ghost" size="sm" wire:click="$toggle('showTaskForm')">İptal</flux:button>
@@ -328,6 +334,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
                     </div>
                 @endif
             </flux:card>
+            @endisland
         </div>
 
         {{-- Sidebar (Right ~35%) --}}
@@ -396,6 +403,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             </flux:card>
 
             {{-- Story Points --}}
+            @island(name: 'story-estimation')
             <flux:card class="space-y-3">
                 <flux:heading>Story Puanları</flux:heading>
 
@@ -433,6 +441,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
                     @endif
                 @endcan
             </flux:card>
+            @endisland
 
             {{-- Attachments --}}
             <flux:card class="space-y-3">

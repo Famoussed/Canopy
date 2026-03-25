@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\SprintStatus;
+use App\Livewire\Forms\StoryForm;
 use App\Models\Project;
 use App\Models\UserStory;
 use App\Services\UserStoryService;
@@ -10,10 +11,10 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class extends Component {
+new #[Layout('layouts::app')] #[Title('Backlog — Canopy')] class extends Component {
     public Project $project;
 
-    public string $newStoryTitle = '';
+    public StoryForm $form;
 
     public ?string $filterEpicId = null;
 
@@ -40,15 +41,13 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
 
     public function createStory(UserStoryService $service): void
     {
-        $this->validate([
-            'newStoryTitle' => ['required', 'string', 'max:255'],
-        ]);
+        $this->form->validate();
 
         $service->create([
-            'title' => $this->newStoryTitle,
+            'title' => $this->form->title,
         ], $this->project, auth()->user());
 
-        $this->newStoryTitle = '';
+        $this->form->reset();
         $this->showCreateForm = false;
     }
 
@@ -60,9 +59,15 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
         $service->moveToSprint($story, $sprint, auth()->user());
     }
 
-    public function reorder(array $orderedIds, UserStoryService $service): void
+    public function reorder($id, $position, UserStoryService $service): void
     {
-        $service->reorder($this->project, $orderedIds);
+        // Get current stories in order, move the dragged one to new position
+        $stories = $this->project->userStories()->backlog()->ordered()->pluck('id')->toArray();
+        $fromIdx = array_search($id, $stories);
+        if ($fromIdx === false) return;
+        array_splice($stories, $fromIdx, 1);
+        array_splice($stories, $position, 0, [$id]);
+        $service->reorder($this->project, $stories);
     }
 
     #[Computed]
@@ -118,7 +123,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
             <form wire:submit="createStory" class="flex items-end gap-3">
                 <div class="flex-1">
                     <flux:input
-                        wire:model="newStoryTitle"
+                        wire:model="form.title"
                         label="Story Başlığı"
                         placeholder="Kullanıcı olarak ... istiyorum"
                         autofocus
@@ -156,45 +161,21 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
                     description="İlk story'nizi ekleyerek başlayın"
                 />
             @else
-                <div
-                    class="space-y-1"
-                    x-data="{
-                        draggingId: null,
-                        dragOverId: null,
-                        reorder(droppedOnId) {
-                            if (!this.draggingId || this.draggingId === droppedOnId) return;
-                            const items = [...$el.querySelectorAll('[data-story-id]')];
-                            const ids = items.map(el => el.dataset.storyId);
-                            const fromIdx = ids.indexOf(this.draggingId);
-                            const toIdx = ids.indexOf(droppedOnId);
-                            if (fromIdx === -1 || toIdx === -1) return;
-                            ids.splice(fromIdx, 1);
-                            ids.splice(toIdx, 0, this.draggingId);
-                            $wire.reorder(ids);
-                            this.draggingId = null;
-                            this.dragOverId = null;
-                        }
-                    }"
-                >
+                <div wire:sort="reorder" class="space-y-1">
                     @foreach ($this->stories as $story)
                         <div
                             wire:key="story-{{ $story->id }}"
-                            data-story-id="{{ $story->id }}"
-                            draggable="true"
-                            x-on:dragstart="draggingId = '{{ $story->id }}'; $el.classList.add('opacity-40')"
-                            x-on:dragend="draggingId = null; dragOverId = null; $el.classList.remove('opacity-40')"
-                            x-on:dragover.prevent="dragOverId = '{{ $story->id }}'"
-                            x-on:drop.prevent="reorder('{{ $story->id }}')"
-                            x-bind:class="dragOverId === '{{ $story->id }}' && draggingId !== '{{ $story->id }}' ? 'ring-2 ring-indigo-400' : ''"
-                            class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:shadow-sm transition-shadow group cursor-grab active:cursor-grabbing"
+                            wire:sort:item="{{ $story->id }}"
+                            class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:shadow-sm transition-shadow group"
                         >
                             {{-- Drag Handle --}}
-                            <span class="drag-handle cursor-grab text-zinc-300 hover:text-zinc-500">
+                            <span wire:sort:handle class="cursor-grab text-zinc-300 hover:text-zinc-500">
                                 <flux:icon name="bars-2" variant="mini" class="size-4" />
                             </span>
 
                             {{-- Story Info --}}
                             <a href="/projects/{{ $project->slug }}/stories/{{ $story->id }}" wire:navigate
+                               wire:sort:ignore
                                class="flex-1 min-w-0 flex items-center gap-2">
                                 <x-status-badge :status="$story->status" />
                                 <span class="text-sm font-medium truncate">{{ $story->title }}</span>
@@ -218,16 +199,18 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
                             </span>
 
                             {{-- Actions Dropdown --}}
-                            <flux:dropdown>
-                                <flux:button icon="ellipsis-vertical" variant="ghost" size="sm" class="opacity-0 group-hover:opacity-100" />
-                                <flux:menu>
-                                    @foreach ($this->sprints as $sprint)
-                                        <flux:menu.item wire:click="moveToSprint('{{ $story->id }}', '{{ $sprint->id }}')">
-                                            Sprint'e Taşı: {{ $sprint->name }}
-                                        </flux:menu.item>
-                                    @endforeach
-                                </flux:menu>
-                            </flux:dropdown>
+                            <div wire:sort:ignore>
+                                <flux:dropdown>
+                                    <flux:button icon="ellipsis-vertical" variant="ghost" size="sm" class="opacity-0 group-hover:opacity-100" />
+                                    <flux:menu>
+                                        @foreach ($this->sprints as $sprint)
+                                            <flux:menu.item wire:click="moveToSprint('{{ $story->id }}', '{{ $sprint->id }}')">
+                                                Sprint'e Taşı: {{ $sprint->name }}
+                                            </flux:menu.item>
+                                        @endforeach
+                                    </flux:menu>
+                                </flux:dropdown>
+                            </div>
                         </div>
                     @endforeach
                 </div>
