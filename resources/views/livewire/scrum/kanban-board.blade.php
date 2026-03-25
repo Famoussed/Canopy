@@ -12,7 +12,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] class extends Component {
+new #[Layout('layouts::app')] #[Title('Kanban Board — Canopy')] class extends Component {
     public Project $project;
 
     public ?string $selectedSprintId = null;
@@ -66,6 +66,20 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
             $storyService->changeStatus($story, StoryStatus::from($newStatus), auth()->user());
         } catch (\App\Exceptions\InvalidStatusTransitionException $e) {
             session()->flash('error', 'Geçersiz durum geçişi.');
+        }
+    }
+
+    public function handleSort($id, $position, $columnId, \App\Services\UserStoryService $storyService): void
+    {
+        $story = \App\Models\UserStory::findOrFail($id);
+        $newStatus = StoryStatus::from($columnId);
+
+        if ($story->status !== $newStatus) {
+            try {
+                $storyService->changeStatus($story, $newStatus, auth()->user());
+            } catch (\App\Exceptions\InvalidStatusTransitionException $e) {
+                session()->flash('error', 'Geçersiz durum geçişi.');
+            }
         }
     }
 
@@ -139,23 +153,9 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
             :action-url="'/projects/' . $project->slug . '/sprints'"
         />
     @else
-        <div
-            class="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[60vh]"
-            x-data="{ dragging: null }"
-        >
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[60vh]">
             @foreach ($this->columns as $statusValue => $column)
-                <div
-                    class="flex flex-col rounded-lg bg-zinc-50 dark:bg-zinc-900 p-3"
-                    x-on:dragover.prevent="$el.querySelector('.kanban-column-body').classList.add('ring-2', 'ring-indigo-400')"
-                    x-on:dragleave.self="$el.querySelector('.kanban-column-body').classList.remove('ring-2', 'ring-indigo-400')"
-                    x-on:drop.prevent="
-                        $el.querySelector('.kanban-column-body').classList.remove('ring-2', 'ring-indigo-400');
-                        if (dragging) {
-                            $wire.changeStoryStatus(dragging, '{{ $statusValue }}');
-                            dragging = null;
-                        }
-                    "
-                >
+                <div class="flex flex-col rounded-lg bg-zinc-50 dark:bg-zinc-900 p-3">
                     {{-- Column Header --}}
                     <div class="flex items-center justify-between mb-3 px-1">
                         <div class="flex items-center gap-2">
@@ -166,17 +166,20 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
                     </div>
 
                     {{-- Column Body --}}
-                    <div class="kanban-column-body flex-1 space-y-2 min-h-[200px] rounded-lg transition-all">
+                    <div
+                        wire:sort="handleSort"
+                        wire:sort:group="board"
+                        wire:sort:group-id="{{ $statusValue }}"
+                        class="flex-1 space-y-2 min-h-[200px] rounded-lg transition-all"
+                    >
                         @foreach ($column['stories'] as $story)
                             <div
                                 wire:key="board-story-{{ $story->id }}"
-                                draggable="true"
-                                x-on:dragstart="dragging = '{{ $story->id }}'; $el.classList.add('opacity-40')"
-                                x-on:dragend="dragging = null; $el.classList.remove('opacity-40')"
-                                class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow {{ $story->epic ? 'border-l-4' : '' }}"
+                                wire:sort:item="{{ $story->id }}"
+                                class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 hover:shadow-sm transition-shadow {{ $story->epic ? 'border-l-4' : '' }}"
                                 @if ($story->epic) style="border-left-color: {{ $story->epic->color ?? '#6366f1' }}" @endif
                             >
-                                <a href="/projects/{{ $project->slug }}/stories/{{ $story->id }}" wire:navigate class="block">
+                                <a href="/projects/{{ $project->slug }}/stories/{{ $story->id }}" wire:navigate wire:sort:ignore class="block">
                                     <div class="text-sm font-medium text-zinc-900 dark:text-white mb-2">{{ $story->title }}</div>
                                 </a>
 
@@ -196,7 +199,7 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
 
                                 {{-- Task Sub-cards --}}
                                 @if ($story->tasks->count())
-                                    <div class="mt-2 space-y-1">
+                                    <div wire:sort:ignore class="mt-2 space-y-1">
                                         @foreach ($story->tasks as $task)
                                             <div class="flex items-center gap-2 text-xs p-1.5 rounded bg-zinc-50 dark:bg-zinc-900">
                                                 <flux:checkbox
@@ -220,3 +223,7 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
         </div>
     @endif
 </x-project-layout>
+
+<style>
+    .kanban-column { min-height: 300px; }
+</style>

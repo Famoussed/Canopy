@@ -15,12 +15,4 @@ class OwnerCannotBeRemovedException extends Exception
             403,
         );
     }
-
-    public function render(): \Illuminate\Http\JsonResponse
-    {
-        return response()->json([
-            'error' => 'owner_cannot_be_removed',
-            'message' => $this->getMessage(),
-        ], 403);
-    }
 }

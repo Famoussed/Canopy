@@ -4,9 +4,11 @@ use App\Enums\IssuePriority;
 use App\Enums\IssueSeverity;
 use App\Enums\IssueStatus;
 use App\Enums\IssueType;
+use App\Livewire\Forms\IssueForm;
 use App\Models\Issue;
 use App\Models\Project;
 use App\Services\IssueService;
+use Livewire\Attributes\Async;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -14,7 +16,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class extends Component {
+new #[Layout('layouts::app')] #[Title('Issue\'lar — Canopy')] class extends Component {
     use WithPagination;
 
     public Project $project;
@@ -37,31 +39,12 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
 
     public bool $showCreateForm = false;
 
-    // Create form fields
-    public string $title = '';
-
-    public string $description = '';
-
-    public string $type = 'bug';
-
-    public string $priority = 'normal';
-
-    public string $severity = 'minor';
-
-    public string $assignedTo = '';
+    public IssueForm $createForm;
 
     // Edit form
     public ?string $editingIssueId = null;
 
-    public string $editTitle = '';
-
-    public string $editDescription = '';
-
-    public string $editType = '';
-
-    public string $editPriority = '';
-
-    public string $editSeverity = '';
+    public IssueForm $editForm;
 
     public function mount(Project $project): void
     {
@@ -84,62 +67,32 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
 
     public function createIssue(): void
     {
-        $this->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'type' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssueType::class)],
-            'priority' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssuePriority::class)],
-            'severity' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssueSeverity::class)],
-        ]);
+        $this->createForm->validate();
 
-        $this->issueService->create([
-            'title' => $this->title,
-            'description' => $this->description,
-            'type' => $this->type,
-            'priority' => $this->priority,
-            'severity' => $this->severity,
-            'assigned_to' => $this->assignedTo ?: null,
-        ], $this->project, auth()->user());
+        $this->issueService->create($this->createForm->toArray(), $this->project, auth()->user());
 
-        $this->reset(['title', 'description', 'type', 'priority', 'severity', 'showCreateForm', 'assignedTo']);
-        $this->type = 'bug';
-        $this->priority = 'normal';
-        $this->severity = 'minor';
+        $this->createForm->resetWithDefaults();
+        $this->showCreateForm = false;
     }
 
     public function editIssue(string $issueId): void
     {
         $issue = Issue::findOrFail($issueId);
         $this->editingIssueId = $issueId;
-        $this->editTitle = $issue->title;
-        $this->editDescription = $issue->description ?? '';
-        $this->editType = $issue->type->value;
-        $this->editPriority = $issue->priority->value;
-        $this->editSeverity = $issue->severity->value;
+        $this->editForm->setFromIssue($issue);
     }
 
     public function updateIssue(): void
     {
-        $this->validate([
-            'editTitle' => 'required|string|max:255',
-            'editDescription' => 'nullable|string',
-            'editType' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssueType::class)],
-            'editPriority' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssuePriority::class)],
-            'editSeverity' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\IssueSeverity::class)],
-        ]);
+        $this->editForm->validate();
 
         $issue = Issue::findOrFail($this->editingIssueId);
-        $this->issueService->update($issue, [
-            'title' => $this->editTitle,
-            'description' => $this->editDescription,
-            'type' => $this->editType,
-            'priority' => $this->editPriority,
-            'severity' => $this->editSeverity,
-        ]);
+        $this->issueService->update($issue, $this->editForm->toArray());
 
         $this->editingIssueId = null;
     }
 
+    #[Async]
     public function changeStatus(string $issueId, string $newStatus): void
     {
         $issue = Issue::findOrFail($issueId);
@@ -242,23 +195,23 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
 
     {{-- Create Form --}}
     @if ($showCreateForm)
-        <flux:card class="mb-6">
+        <flux:card class="mb-6" wire:transition>
             <flux:heading class="mb-4">Yeni Issue Oluştur</flux:heading>
             <form wire:submit="createIssue" class="space-y-4">
-                <flux:input wire:model="title" label="Başlık" placeholder="Issue başlığı..." required />
-                <flux:textarea wire:model="description" label="Açıklama" rows="3" />
+                <flux:input wire:model="createForm.title" label="Başlık" placeholder="Issue başlığı..." required />
+                <flux:textarea wire:model="createForm.description" label="Açıklama" rows="3" />
                 <div class="grid grid-cols-3 gap-4">
-                    <flux:select wire:model="type" label="Tip">
+                    <flux:select wire:model="createForm.type" label="Tip">
                         @foreach (IssueType::cases() as $t)
                             <option value="{{ $t->value }}">{{ $t->label() }}</option>
                         @endforeach
                     </flux:select>
-                    <flux:select wire:model="priority" label="Öncelik">
+                    <flux:select wire:model="createForm.priority" label="Öncelik">
                         @foreach (IssuePriority::cases() as $p)
                             <option value="{{ $p->value }}">{{ $p->label() }}</option>
                         @endforeach
                     </flux:select>
-                    <flux:select wire:model="severity" label="Ciddiyet">
+                    <flux:select wire:model="createForm.severity" label="Ciddiyet">
                         @foreach (IssueSeverity::cases() as $s)
                             <option value="{{ $s->value }}">{{ $s->label() }}</option>
                         @endforeach
@@ -352,23 +305,23 @@ new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class 
 
     {{-- Edit Modal --}}
     @if ($editingIssueId)
-        <flux:modal wire:model="editingIssueId" class="max-w-lg">
+        <flux:modal wire:model="editingIssueId" class="max-w-lg" wire:transition>
             <flux:heading>Issue Düzenle</flux:heading>
             <form wire:submit="updateIssue" class="space-y-4 mt-4">
-                <flux:input wire:model="editTitle" label="Başlık" required />
-                <flux:textarea wire:model="editDescription" label="Açıklama" rows="3" />
+                <flux:input wire:model="editForm.title" label="Başlık" required />
+                <flux:textarea wire:model="editForm.description" label="Açıklama" rows="3" />
                 <div class="grid grid-cols-3 gap-4">
-                    <flux:select wire:model="editType" label="Tip">
+                    <flux:select wire:model="editForm.type" label="Tip">
                         @foreach (IssueType::cases() as $t)
                             <option value="{{ $t->value }}">{{ $t->label() }}</option>
                         @endforeach
                     </flux:select>
-                    <flux:select wire:model="editPriority" label="Öncelik">
+                    <flux:select wire:model="editForm.priority" label="Öncelik">
                         @foreach (IssuePriority::cases() as $p)
                             <option value="{{ $p->value }}">{{ $p->label() }}</option>
                         @endforeach
                     </flux:select>
-                    <flux:select wire:model="editSeverity" label="Ciddiyet">
+                    <flux:select wire:model="editForm.severity" label="Ciddiyet">
                         @foreach (IssueSeverity::cases() as $s)
                             <option value="{{ $s->value }}">{{ $s->label() }}</option>
                         @endforeach

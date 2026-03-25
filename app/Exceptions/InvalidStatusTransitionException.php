@@ -18,14 +18,4 @@ class InvalidStatusTransitionException extends Exception
 
         parent::__construct($message, 422);
     }
-
-    public function render(): \Illuminate\Http\JsonResponse
-    {
-        return response()->json([
-            'error' => 'invalid_status_transition',
-            'message' => $this->getMessage(),
-            'current_status' => $this->currentStatus,
-            'target_status' => $this->targetStatus,
-        ], 422);
-    }
 }
