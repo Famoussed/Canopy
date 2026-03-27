@@ -3,6 +3,7 @@
 use App\Enums\SprintStatus;
 use App\Livewire\Forms\StoryForm;
 use App\Models\Project;
+use App\Models\Sprint;
 use App\Models\UserStory;
 use App\Services\UserStoryService;
 use App\Services\SprintService;
@@ -48,7 +49,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
     public function moveToSprint(string $storyId, string $sprintId, UserStoryService $service): void
     {
         $story = UserStory::findOrFail($storyId);
-        $sprint = \App\Models\Sprint::findOrFail($sprintId);
+        $sprint = Sprint::findOrFail($sprintId);
 
         $service->moveToSprint($story, $sprint, auth()->user());
     }

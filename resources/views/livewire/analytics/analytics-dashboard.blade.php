@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\StoryStatus;
 use App\Models\Project;
 use App\Services\BurndownService;
+use App\Services\ProjectService;
 use App\Services\VelocityService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -12,11 +14,11 @@ use Livewire\Component;
 new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class extends Component {
     public Project $project;
 
-    protected \App\Services\ProjectService $projectService;
-    protected \App\Services\VelocityService $velocityService;
-    protected \App\Services\BurndownService $burndownService;
+    protected ProjectService $projectService;
+    protected VelocityService $velocityService;
+    protected BurndownService $burndownService;
 
-    public function boot(\App\Services\ProjectService $projectService, \App\Services\VelocityService $velocityService, \App\Services\BurndownService $burndownService)
+    public function boot(ProjectService $projectService, VelocityService $velocityService, BurndownService $burndownService)
     {
         $this->projectService = $projectService;
         $this->velocityService = $velocityService;
@@ -129,7 +131,12 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
                 <x-empty-state icon="chart-bar" title="Veri yok" description="Kapatılmış sprint verisi bulunamadı." />
             @else
                 <div
-                    x-data="{ data: @js($this->velocityData) }"
+                    x-data="{
+                        data: @js($this->velocityData),
+                        maxPoints(d) {
+                            return Math.max(...d.map(item => item.completed_points || 0), 1);
+                        }
+                    }"
                     class="space-y-3"
                 >
                     <template x-for="(item, index) in data" :key="index">
@@ -138,7 +145,7 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
                             <div class="flex-1 h-6 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                                 <div
                                     class="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                                    :style="'width: ' + ((item.completed_points || 0) / $js.maxPoints(data) * 100) + '%'"
+                                    :style="'width: ' + ((item.completed_points || 0) / maxPoints(data) * 100) + '%'"
                                 ></div>
                             </div>
                             <span class="text-sm font-medium w-12 text-right" x-text="(item.completed_points || 0) + ' SP'"></span>
@@ -162,7 +169,19 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
                 <x-empty-state icon="chart-bar" title="Aktif sprint yok" description="Burndown grafiği aktif bir sprint gerektirir." />
             @else
                 <div
-                    x-data="{ data: @js($this->burndownData) }"
+                    x-data="{
+                        data: @js($this->burndownData),
+                        svgPoints(d, key) {
+                            if (!d.length) return '';
+                            const width = 400;
+                            const height = 200;
+                            const maxVal = Math.max(...d.map(item => item.ideal || item.remaining || 0), 1);
+                            const step = width / Math.max(d.length - 1, 1);
+                            return d.map((item, i) =>
+                                (i * step) + ',' + (height - ((item[key] || 0) / maxVal * height))
+                            ).join(' ');
+                        }
+                    }"
                 >
                     <svg viewBox="0 0 400 200" class="w-full h-48">
                         {{-- Grid lines --}}
@@ -174,7 +193,7 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
 
                         {{-- Ideal line --}}
                         <polyline
-                            :points="$js.svgPoints(data, 'ideal')"
+                            :points="svgPoints(data, 'ideal')"
                             fill="none"
                             stroke="#a5b4fc"
                             stroke-width="2"
@@ -182,7 +201,7 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
                         />
                         {{-- Actual remaining --}}
                         <polyline
-                            :points="$js.svgPoints(data, 'remaining')"
+                            :points="svgPoints(data, 'remaining')"
                             fill="none"
                             stroke="#6366f1"
                             stroke-width="2.5"
@@ -237,24 +256,3 @@ new #[Layout('components.layouts.app')] #[Title('Analiz — Canopy')] class exte
         @endif
     </flux:card>
 </x-project-layout>
-
-<script>
-    this.$js.maxPoints = (data) => {
-        return Math.max(...data.map(d => d.completed_points || 0), 1);
-    }
-
-    this.$js.maxValue = (data) => {
-        return Math.max(...data.map(d => d.ideal || d.remaining || 0), 1);
-    }
-
-    this.$js.svgPoints = (data, key) => {
-        if (!data.length) return '';
-        const width = 400;
-        const height = 200;
-        const maxVal = Math.max(...data.map(d => d.ideal || d.remaining || 0), 1);
-        const step = width / Math.max(data.length - 1, 1);
-        return data.map((d, i) =>
-            (i * step) + ',' + (height - ((d[key] || 0) / maxVal * height))
-        ).join(' ');
-    }
-</script>

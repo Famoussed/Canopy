@@ -4,6 +4,7 @@
     use App\Enums\IssueSeverity;
     use App\Enums\IssueStatus;
     use App\Enums\IssueType;
+    use App\Exceptions\InvalidStatusTransitionException;
     use App\Livewire\Forms\IssueForm;
     use App\Models\Issue;
     use App\Models\Project;
@@ -13,7 +14,6 @@
     use Livewire\Attributes\Layout;
     use Livewire\Attributes\On;
     use Livewire\Attributes\Title;
-    use Livewire\Attributes\Url;
     use Livewire\Component;
     use Livewire\WithPagination;
 
@@ -22,18 +22,18 @@
 
         public Project $project;
 
-        protected \App\Services\IssueService $issueService;
+        protected IssueService $issueService;
 
-        public function boot(\App\Services\IssueService $issueService)
+        public function boot(IssueService $issueService)
         {
             $this->issueService = $issueService;
         }
 
-    public ?IssueStatus $statusFilter = null;
+        public ?IssueStatus $statusFilter = null;
 
-    public ?IssueType $typeFilter = null;
+        public ?IssueType $typeFilter = null;
 
-    public ?IssuePriority $priorityFilter = null;
+        public ?IssuePriority $priorityFilter = null;
         public bool $showCreateForm = false;
 
         public IssueForm $createForm;
@@ -93,7 +93,7 @@
                     IssueStatus::from($newStatus),
                     auth()->user(),
                 );
-            } catch (\App\Exceptions\InvalidStatusTransitionException) {
+            } catch (InvalidStatusTransitionException) {
                 session()->flash('error', 'Geçersiz durum geçişi.');
             }
         }
