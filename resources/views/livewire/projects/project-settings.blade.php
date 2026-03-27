@@ -1,15 +1,11 @@
 <?php
 
 use App\Enums\ProjectRole;
-use App\Exceptions\DuplicateMemberException;
-use App\Exceptions\MaxMembersExceededException;
 use App\Livewire\Forms\ProjectForm;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\MembershipService;
 use App\Services\ProjectService;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -40,7 +36,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         $this->project->refresh();
     }
 
-    public function saveProject(ProjectService $service): void
+    public function saveProject(\App\Services\ProjectService $service): void
     {
         $this->form->validate();
 
@@ -54,7 +50,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
     {
         $this->validate([
             'newMemberEmail' => 'required|email',
-            'newMemberRole' => ['required', Rule::enum(ProjectRole::class)],
+            'newMemberRole' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\ProjectRole::class)],
         ]);
 
         try {
@@ -68,16 +64,16 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
             $this->reset(['newMemberEmail', 'newMemberRole', 'showAddMember']);
             $this->newMemberRole = 'member';
             $this->project->refresh();
-        } catch (ModelNotFoundException) {
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             $this->addError('newMemberEmail', 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.');
-        } catch (DuplicateMemberException) {
+        } catch (\App\Exceptions\DuplicateMemberException) {
             $this->addError('newMemberEmail', 'Bu kullanıcı zaten üye.');
-        } catch (MaxMembersExceededException $e) {
+        } catch (\App\Exceptions\MaxMembersExceededException $e) {
             $this->addError('newMemberEmail', $e->getMessage());
         }
     }
 
-    public function changeRole(string $userId, string $role, MembershipService $service): void
+    public function changeRole(string $userId, string $role, \App\Services\MembershipService $service): void
     {
         $service->changeRoleByUserId(
             $this->project,
@@ -88,7 +84,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
         $this->project->refresh();
     }
 
-    public function removeMember(string $userId, MembershipService $service): void
+    public function removeMember(string $userId, \App\Services\MembershipService $service): void
     {
         $service->removeById(
             $this->project,

@@ -1,8 +1,6 @@
 <?php
 
 use App\Models\Notification;
-use App\Services\NotificationService;
-use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -38,7 +36,7 @@ new class extends Component {
     }
 
     #[Computed]
-    public function notifications(): Collection
+    public function notifications(): \Illuminate\Support\Collection
     {
         return auth()->user()->notifications()
             ->latest()
@@ -46,7 +44,7 @@ new class extends Component {
             ->get();
     }
 
-    public function markAsRead(string $notificationId, NotificationService $notificationService): void
+    public function markAsRead(string $notificationId, \App\Services\NotificationService $notificationService): void
     {
         $notification = auth()->user()->notifications()->find($notificationId);
         $wasUnread = $notification && is_null($notification->read_at);
@@ -60,7 +58,7 @@ new class extends Component {
         unset($this->notifications);
     }
 
-    public function markAllAsRead(NotificationService $notificationService): void
+    public function markAllAsRead(\App\Services\NotificationService $notificationService): void
     {
         $notificationService->markAllAsRead(auth()->user());
 

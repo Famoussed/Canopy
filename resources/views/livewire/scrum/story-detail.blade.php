@@ -1,16 +1,12 @@
 <?php
 
-use App\Enums\StoryStatus;
 use App\Enums\TaskStatus;
-use App\Exceptions\InvalidStatusTransitionException;
 use App\Livewire\Forms\StoryForm;
 use App\Livewire\Forms\TaskForm;
 use App\Models\Project;
-use App\Models\Task;
 use App\Models\UserStory;
 use App\Services\TaskService;
 use App\Services\UserStoryService;
-use Illuminate\Auth\Access\AuthorizationException;
 use Livewire\Attributes\Async;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -59,7 +55,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
     }
 
     #[Async]
-    public function saveEstimation(UserStoryService $service): void
+    public function saveEstimation(\App\Services\UserStoryService $service): void
     {
         $this->authorize('estimate', $this->story);
 
@@ -90,7 +86,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
     }
 
     #[Async]
-    public function saveTitle(UserStoryService $service): void
+    public function saveTitle(\App\Services\UserStoryService $service): void
     {
         $this->storyForm->validate(['title' => 'required|string|max:255']);
 
@@ -103,7 +99,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
     }
 
     #[Async]
-    public function saveDescription(UserStoryService $service): void
+    public function saveDescription(\App\Services\UserStoryService $service): void
     {
         $service->update($this->story, [
             'description' => $this->storyForm->description,
@@ -112,16 +108,16 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         $this->story->refresh();
     }
 
-    public function changeStatus(string $newStatus, UserStoryService $service): void
+    public function changeStatus(string $newStatus, \App\Services\UserStoryService $service): void
     {
         try {
             $service->changeStatus(
                 $this->story,
-                StoryStatus::from($newStatus),
+                \App\Enums\StoryStatus::from($newStatus),
                 auth()->user(),
             );
             $this->story->refresh();
-        } catch (InvalidStatusTransitionException) {
+        } catch (\App\Exceptions\InvalidStatusTransitionException) {
             session()->flash('error', 'Geçersiz durum geçişi.');
         }
     }
@@ -131,8 +127,8 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         $this->taskForm->validate();
 
         try {
-            $this->authorize('create', [Task::class, $this->story->project]);
-        } catch (AuthorizationException) {
+            $this->authorize('create', [\App\Models\Task::class, $this->story->project]);
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
             session()->flash('error', 'Task oluşturma yetkiniz yok.');
 
             return;
@@ -158,13 +154,13 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         $this->story->refresh();
     }
 
-    public function assignTask(string $taskId, string $userId, TaskService $service): void
+    public function assignTask(string $taskId, string $userId, \App\Services\TaskService $service): void
     {
         $task = $service->findById($taskId);
 
         try {
             $this->authorize('assign', $task);
-        } catch (AuthorizationException) {
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
             session()->flash('error', 'Task atama yetkiniz yok.');
 
             return;
@@ -181,7 +177,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         $this->story->refresh();
     }
 
-    public function changeTaskStatus(string $taskId, string $newStatus, TaskService $service): void
+    public function changeTaskStatus(string $taskId, string $newStatus, \App\Services\TaskService $service): void
     {
         $task = $service->findById($taskId);
         $status = TaskStatus::from($newStatus);
@@ -190,7 +186,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             $this->authorize('changeStatus', $task);
             $service->changeStatus($task, $status, auth()->user());
             $this->story->refresh();
-        } catch (AuthorizationException) {
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
             session()->flash('error', 'Bu task\'\u0131n durumunu değiştirme yetkiniz yok.');
         } catch (\Exception) {
             session()->flash('error', 'Task durumu değiştirilemedi.');
@@ -209,7 +205,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
             $this->authorize('changeStatus', $task);
             $service->changeStatus($task, $newStatus, auth()->user());
             $this->story->refresh();
-        } catch (AuthorizationException) {
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
             session()->flash('error', 'Bu task\'\u0131n durumunu değiştirme yetkiniz yok.');
         } catch (\Exception) {
             session()->flash('error', 'Task durumu değiştirilemedi.');

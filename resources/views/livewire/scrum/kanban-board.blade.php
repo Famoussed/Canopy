@@ -3,12 +3,8 @@
 use App\Enums\SprintStatus;
 use App\Enums\StoryStatus;
 use App\Enums\TaskStatus;
-use App\Exceptions\InvalidStatusTransitionException;
-use App\Exceptions\TaskNotAssignedException;
 use App\Models\Project;
 use App\Models\Sprint;
-use App\Models\Task;
-use App\Models\UserStory;
 use App\Services\TaskService;
 use App\Services\UserStoryService;
 use Livewire\Attributes\Computed;
@@ -43,39 +39,39 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
         unset($this->sprint, $this->columns, $this->sprints);
     }
 
-    public function changeTaskStatus(string $taskId, string $newStatus, TaskService $taskService): void
+    public function changeTaskStatus(string $taskId, string $newStatus, \App\Services\TaskService $taskService): void
     {
-        $task = Task::findOrFail($taskId);
+        $task = \App\Models\Task::findOrFail($taskId);
 
         try {
             $taskService->changeStatus($task, TaskStatus::from($newStatus), auth()->user());
-        } catch (TaskNotAssignedException $e) {
+        } catch (\App\Exceptions\TaskNotAssignedException $e) {
             session()->flash('error', 'Task önce birine atanmalı.');
-        } catch (InvalidStatusTransitionException $e) {
+        } catch (\App\Exceptions\InvalidStatusTransitionException $e) {
             session()->flash('error', 'Geçersiz durum geçişi.');
         }
     }
 
-    public function changeStoryStatus(string $storyId, string $newStatus, UserStoryService $storyService): void
+    public function changeStoryStatus(string $storyId, string $newStatus, \App\Services\UserStoryService $storyService): void
     {
-        $story = UserStory::findOrFail($storyId);
+        $story = \App\Models\UserStory::findOrFail($storyId);
 
         try {
             $storyService->changeStatus($story, StoryStatus::from($newStatus), auth()->user());
-        } catch (InvalidStatusTransitionException $e) {
+        } catch (\App\Exceptions\InvalidStatusTransitionException $e) {
             session()->flash('error', 'Geçersiz durum geçişi.');
         }
     }
 
-    public function handleSort($id, $position, $columnId, UserStoryService $storyService): void
+    public function handleSort($id, $position, $columnId, \App\Services\UserStoryService $storyService): void
     {
-        $story = UserStory::findOrFail($id);
+        $story = \App\Models\UserStory::findOrFail($id);
         $newStatus = StoryStatus::from($columnId);
 
         if ($story->status !== $newStatus) {
             try {
                 $storyService->changeStatus($story, $newStatus, auth()->user());
-            } catch (InvalidStatusTransitionException $e) {
+            } catch (\App\Exceptions\InvalidStatusTransitionException $e) {
                 session()->flash('error', 'Geçersiz durum geçişi.');
             }
         }
