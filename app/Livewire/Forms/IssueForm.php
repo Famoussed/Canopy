@@ -9,15 +9,12 @@ use App\Enums\IssueSeverity;
 use App\Enums\IssueType;
 use App\Models\Issue;
 use Illuminate\Validation\Rule;
-use Livewire\Attributes\Validate;
 use Livewire\Form;
 
 class IssueForm extends Form
 {
-    #[Validate('required|string|max:255')]
     public string $title = '';
 
-    #[Validate('nullable|string')]
     public string $description = '';
 
     public string $type = 'bug';
@@ -28,10 +25,12 @@ class IssueForm extends Form
 
     public ?string $assigned_to = null;
 
-    /** @return array<string, mixed> */
+    /** @return array<string, array<int, mixed>> */
     public function rules(): array
     {
         return [
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
             'type' => ['required', Rule::enum(IssueType::class)],
             'priority' => ['required', Rule::enum(IssuePriority::class)],
             'severity' => ['required', Rule::enum(IssueSeverity::class)],
