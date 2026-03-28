@@ -13,10 +13,8 @@ use App\Events\Project\MemberRemoved;
 use App\Models\Project;
 use App\Models\ProjectMembership;
 use App\Models\User;
-use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class MembershipService
 {
@@ -32,11 +30,7 @@ class MembershipService
             return $this->addAction->execute($project, $user, $role);
         });
 
-        try {
-            MemberAdded::dispatch($project, $user, $membership, $addedBy);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for MemberAdded', ['error' => $e->getMessage()]);
-        }
+        MemberAdded::dispatch($project, $user, $membership, $addedBy);
 
         return $membership;
     }

@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Actions\Notification\MarkAsReadAction;
 use App\Actions\Notification\SendNotificationAction;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class NotificationService
 {
@@ -30,7 +31,7 @@ class NotificationService
         $user->notifications()->unread()->update(['read_at' => now()]);
     }
 
-    public function getUnreadNotifications(User $user): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function getUnreadNotifications(User $user): LengthAwarePaginator
     {
         return $user->notifications()
             ->unread()

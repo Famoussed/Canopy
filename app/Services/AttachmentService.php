@@ -7,7 +7,10 @@ namespace App\Services;
 use App\Actions\File\DeleteFileAction;
 use App\Actions\File\UploadFileAction;
 use App\Models\Attachment;
+use App\Models\Issue;
+use App\Models\Task;
 use App\Models\User;
+use App\Models\UserStory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 
@@ -26,9 +29,9 @@ class AttachmentService
     public function uploadToTarget(string $type, string $id, UploadedFile $file, User $uploader): Attachment
     {
         $modelMap = [
-            'user_story' => \App\Models\UserStory::class,
-            'task' => \App\Models\Task::class,
-            'issue' => \App\Models\Issue::class,
+            'user_story' => UserStory::class,
+            'task' => Task::class,
+            'issue' => Issue::class,
         ];
 
         if (! array_key_exists($type, $modelMap)) {

@@ -11,9 +11,8 @@ use App\Events\Scrum\TaskStatusChanged;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserStory;
-use Illuminate\Broadcasting\BroadcastException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class TaskService
 {
@@ -52,11 +51,7 @@ class TaskService
 
         $task->loadMissing('userStory');
 
-        try {
-            TaskStatusChanged::dispatch($task, $oldStatus->value, $newStatus->value, $user);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for TaskStatusChanged', ['error' => $e->getMessage()]);
-        }
+        TaskStatusChanged::dispatch($task, $oldStatus->value, $newStatus->value, $user);
 
         return $task;
     }
@@ -68,16 +63,12 @@ class TaskService
 
         $task->loadMissing('userStory');
 
-        try {
-            TaskAssigned::dispatch($task, $assignee, $assignedBy);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for TaskAssigned', ['error' => $e->getMessage()]);
-        }
+        TaskAssigned::dispatch($task, $assignee, $assignedBy);
 
         return $task;
     }
 
-    public function listByStory(UserStory $story): \Illuminate\Database\Eloquent\Collection
+    public function listByStory(UserStory $story): Collection
     {
         return $story->tasks()->with('assignee')->get();
     }
@@ -102,7 +93,7 @@ class TaskService
     public function unassign(Task $task): Task
     {
         $task->update(['assigned_to' => null]);
-        
+
         return $task->fresh();
     }
 }

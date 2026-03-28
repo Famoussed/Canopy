@@ -8,6 +8,7 @@ use App\Actions\Scrum\CreateEpicAction;
 use App\Models\Epic;
 use App\Models\Project;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 
 class EpicService
 {
@@ -27,7 +28,7 @@ class EpicService
         return $epic->fresh();
     }
 
-    public function listByProject(Project $project): \Illuminate\Database\Eloquent\Collection
+    public function listByProject(Project $project): Collection
     {
         return $project->epics()->withStoryCount()->get();
     }

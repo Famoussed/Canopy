@@ -7,8 +7,6 @@ namespace App\Actions\Notification;
 use App\Events\Notification\NotificationSent;
 use App\Models\Notification;
 use App\Models\User;
-use Illuminate\Broadcasting\BroadcastException;
-use Illuminate\Support\Facades\Log;
 
 class SendNotificationAction
 {
@@ -19,11 +17,7 @@ class SendNotificationAction
             'data' => $data,
         ]);
 
-        try {
-            NotificationSent::dispatch($notification, $user->id);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for NotificationSent', ['error' => $e->getMessage()]);
-        }
+        NotificationSent::dispatch($notification, $user->id);
 
         return $notification;
     }
