@@ -10,14 +10,20 @@ use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MemberAdded implements ShouldBroadcast
+class MemberAdded implements ShouldBroadcast, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithSockets;
     use SerializesModels;
+
+    public int $tries = 3;
+
+    /** @var array<int> */
+    public array $backoff = [5, 10, 30];
 
     public function __construct(
         public readonly Project $project,

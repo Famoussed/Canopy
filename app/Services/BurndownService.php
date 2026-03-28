@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Enums\StoryStatus;
 use App\Models\Sprint;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -56,11 +55,12 @@ class BurndownService
         foreach ($period as $date) {
             if ($date->isFuture()) {
                 $actualLine[] = null;
+
                 continue;
             }
 
             $completedPoints = $doneStories
-                ->filter(fn($s) => $s->updated_at->startOfDay()->lte($date))
+                ->filter(fn ($s) => $s->updated_at->startOfDay()->lte($date))
                 ->sum('total_points');
 
             $actualLine[] = round($totalPoints - (float) $completedPoints, 1);
@@ -74,7 +74,7 @@ class BurndownService
         return $sprint->scopeChanges()
             ->with('userStory')
             ->get()
-            ->map(fn($change) => [
+            ->map(fn ($change) => [
                 'date' => $change->changed_at->toDateString(),
                 'type' => $change->change_type,
                 'points_delta' => (float) ($change->userStory->total_points ?? 0),

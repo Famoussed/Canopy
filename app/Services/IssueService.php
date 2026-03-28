@@ -14,10 +14,8 @@ use App\Events\Issue\IssueStatusChanged;
 use App\Models\Issue;
 use App\Models\Project;
 use App\Models\User;
-use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class IssueService
 {
@@ -32,11 +30,7 @@ class IssueService
             return $this->createAction->execute($data, $project, $user);
         });
 
-        try {
-            IssueCreated::dispatch($issue, $user);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for IssueCreated', ['error' => $e->getMessage()]);
-        }
+        IssueCreated::dispatch($issue, $user);
 
         return $issue;
     }
@@ -61,11 +55,7 @@ class IssueService
             return $this->changeStatusAction->execute($issue, $newStatus);
         });
 
-        try {
-            IssueStatusChanged::dispatch($issue, $oldStatus, $newStatus->value, $user);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for IssueStatusChanged', ['error' => $e->getMessage()]);
-        }
+        IssueStatusChanged::dispatch($issue, $oldStatus, $newStatus->value, $user);
 
         return $issue;
     }

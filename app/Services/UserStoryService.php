@@ -17,10 +17,8 @@ use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\User;
 use App\Models\UserStory;
-use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class UserStoryService
 {
@@ -38,11 +36,7 @@ class UserStoryService
             return $this->createAction->execute($data, $project, $user);
         });
 
-        try {
-            StoryCreated::dispatch($story, $user);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for StoryCreated', ['error' => $e->getMessage()]);
-        }
+        StoryCreated::dispatch($story, $user);
 
         return $story;
     }
@@ -69,11 +63,7 @@ class UserStoryService
             return $this->changeStatusAction->execute($story, $newStatus);
         });
 
-        try {
-            StoryStatusChanged::dispatch($story, $oldStatus, $newStatus->value, $user);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for StoryStatusChanged', ['error' => $e->getMessage()]);
-        }
+        StoryStatusChanged::dispatch($story, $oldStatus, $newStatus->value, $user);
 
         return $story;
     }

@@ -12,9 +12,7 @@ use App\Events\Scrum\SprintStarted;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\User;
-use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class SprintService
 {
@@ -68,11 +66,7 @@ class SprintService
             return $this->startAction->execute($sprint);
         });
 
-        try {
-            SprintStarted::dispatch($sprint, $user);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for SprintStarted', ['error' => $e->getMessage()]);
-        }
+        SprintStarted::dispatch($sprint, $user);
 
         return $sprint;
     }
@@ -86,11 +80,7 @@ class SprintService
             return $this->closeAction->execute($sprint);
         });
 
-        try {
-            SprintClosed::dispatch($sprint, $user);
-        } catch (BroadcastException $e) {
-            Log::warning('Broadcast failed for SprintClosed', ['error' => $e->getMessage()]);
-        }
+        SprintClosed::dispatch($sprint, $user);
 
         return $sprint;
     }
