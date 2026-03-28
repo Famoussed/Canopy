@@ -6,13 +6,16 @@ namespace App\Services;
 
 use App\Actions\Issue\ChangeIssueStatusAction;
 use App\Actions\Issue\CreateIssueAction;
+use App\Enums\IssueSeverity;
 use App\Enums\IssueStatus;
+use App\Enums\IssueType;
 use App\Events\Issue\IssueCreated;
 use App\Events\Issue\IssueStatusChanged;
 use App\Models\Issue;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Broadcasting\BroadcastException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -67,7 +70,7 @@ class IssueService
         return $issue;
     }
 
-    public function list(Project $project, array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function list(Project $project, array $filters): LengthAwarePaginator
     {
         return $project->issues()
             ->with(['creator', 'assignee'])
@@ -81,18 +84,18 @@ class IssueService
         return $issue->load(['creator', 'assignee', 'attachments']);
     }
 
-    public function getProjectIssueCounts(\App\Models\Project $project): array
+    public function getProjectIssueCounts(Project $project): array
     {
         $counts = $project->issues()
-            ->selectRaw("
+            ->selectRaw('
                 COUNT(*) as total,
                 SUM(CASE WHEN status != ? THEN 1 ELSE 0 END) as open_count,
                 SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) as bug_count,
                 SUM(CASE WHEN severity = ? THEN 1 ELSE 0 END) as critical_count
-            ", [
-                \App\Enums\IssueStatus::Done->value,
-                \App\Enums\IssueType::Bug->value,
-                \App\Enums\IssueSeverity::Critical->value
+            ', [
+                IssueStatus::Done->value,
+                IssueType::Bug->value,
+                IssueSeverity::Critical->value,
             ])->first();
 
         return [
@@ -103,20 +106,8 @@ class IssueService
         ];
     }
 
-    public function getFilteredIssues(\App\Models\Project $project, array $filters)
+    public function getFilteredIssues(Project $project, array $filters): LengthAwarePaginator
     {
-        $query = $project->issues()->with(['assignee', 'creator']);
-
-        if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-        if (!empty($filters['type'])) {
-            $query->where('type', $filters['type']);
-        }
-        if (!empty($filters['priority'])) {
-            $query->where('priority', $filters['priority']);
-        }
-
-        return $query->latest()->paginate(25);
+        return $this->list($project, $filters);
     }
 }

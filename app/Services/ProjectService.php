@@ -6,10 +6,13 @@ namespace App\Services;
 
 use App\Actions\Project\AddMemberAction;
 use App\Actions\Project\CreateProjectAction;
+use App\Enums\IssueStatus;
 use App\Enums\ProjectRole;
+use App\Enums\StoryStatus;
 use App\Events\Project\ProjectCreated;
 use App\Models\Project;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class ProjectService
@@ -40,8 +43,7 @@ class ProjectService
         return $project->fresh();
     }
 
-
-    public function listForUser(string $userId, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function listForUser(string $userId, array $filters = []): LengthAwarePaginator
     {
         return Project::forUser($userId)
             ->withDetails()
@@ -63,11 +65,11 @@ class ProjectService
     public function getProjectStats(Project $project): array
     {
         return [
-            "total_stories" => $project->userStories()->count(),
-            "completed_stories" => $project->userStories()->where('status', \App\Enums\StoryStatus::Done->value)->count(),
-            "total_issues" => $project->issues()->count(),
-            "open_issues" => $project->issues()->where('status', '!=', \App\Enums\IssueStatus::Done->value)->count(),
-            "closed_sprints" => $project->sprints()->closed()->count(),
+            'total_stories' => $project->userStories()->count(),
+            'completed_stories' => $project->userStories()->where('status', StoryStatus::Done->value)->count(),
+            'total_issues' => $project->issues()->count(),
+            'open_issues' => $project->issues()->where('status', '!=', IssueStatus::Done->value)->count(),
+            'closed_sprints' => $project->sprints()->closed()->count(),
         ];
     }
 

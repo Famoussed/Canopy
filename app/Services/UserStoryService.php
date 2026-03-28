@@ -9,7 +9,9 @@ use App\Actions\Scrum\ChangeStoryStatusAction;
 use App\Actions\Scrum\CreateUserStoryAction;
 use App\Actions\Scrum\MoveStoryToSprintAction;
 use App\Actions\Scrum\ReorderBacklogAction;
+use App\Enums\SprintStatus;
 use App\Enums\StoryStatus;
+use App\Events\Scrum\SprintScopeChanged;
 use App\Events\Scrum\StoryCreated;
 use App\Events\Scrum\StoryStatusChanged;
 use App\Models\Project;
@@ -17,6 +19,7 @@ use App\Models\Sprint;
 use App\Models\User;
 use App\Models\UserStory;
 use Illuminate\Broadcasting\BroadcastException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -78,9 +81,25 @@ class UserStoryService
 
     public function moveToSprint(UserStory $story, Sprint $sprint, User $user): UserStory
     {
-        return DB::transaction(function () use ($story, $sprint, $user) {
+        $previousSprintId = $story->sprint_id;
+
+        $story = DB::transaction(function () use ($story, $sprint, $user) {
             return $this->moveToSprintAction->execute($story, $sprint, $user);
         });
+
+        if ($sprint->status === SprintStatus::Active) {
+            SprintScopeChanged::dispatch($sprint, $story, 'added', $user);
+        }
+
+        if ($previousSprintId !== null) {
+            $previousSprint = Sprint::find($previousSprintId);
+
+            if ($previousSprint?->status === SprintStatus::Active) {
+                SprintScopeChanged::dispatch($previousSprint, $story, 'removed', $user);
+            }
+        }
+
+        return $story;
     }
 
     public function estimate(UserStory $story, array $points): UserStory
@@ -92,10 +111,12 @@ class UserStoryService
 
     public function reorder(Project $project, array $orderedIds): void
     {
-        $this->reorderAction->execute($project, $orderedIds);
+        DB::transaction(function () use ($project, $orderedIds) {
+            $this->reorderAction->execute($project, $orderedIds);
+        });
     }
 
-    public function list(Project $project, array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function list(Project $project, array $filters): LengthAwarePaginator
     {
         return $project->userStories()
             ->with(['epic', 'creator'])

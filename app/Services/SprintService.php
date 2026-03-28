@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Actions\Scrum\CloseSprintAction;
 use App\Actions\Scrum\StartSprintAction;
+use App\Enums\SprintStatus;
 use App\Events\Scrum\SprintClosed;
 use App\Events\Scrum\SprintStarted;
 use App\Models\Project;
@@ -39,7 +40,7 @@ class SprintService
     {
         return $project->sprints()->create([
             ...$data,
-            'status' => \App\Enums\SprintStatus::Planning,
+            'status' => SprintStatus::Planning,
         ]);
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\StoryStatus;
 use App\Models\Project;
 
 class VelocityService
@@ -14,12 +15,12 @@ class VelocityService
             ->closed()
             ->latest()
             ->limit($sprintCount)
-            ->withSum(['userStories as completed_points' => fn($q) => $q->where('status', \App\Enums\StoryStatus::Done)], 'total_points')
+            ->withSum(['userStories as completed_points' => fn ($q) => $q->where('status', StoryStatus::Done)], 'total_points')
             ->get()
             ->reverse()
             ->values();
 
-        $sprintData = $sprints->map(fn($sprint) => [
+        $sprintData = $sprints->map(fn ($sprint) => [
             'name' => $sprint->name,
             'completed_points' => (float) ($sprint->completed_points ?? 0),
         ])->toArray();

@@ -14,6 +14,7 @@ use App\Models\Project;
 use App\Models\ProjectMembership;
 use App\Models\User;
 use Illuminate\Broadcasting\BroadcastException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -42,11 +43,11 @@ class MembershipService
 
     public function remove(Project $project, User $user, User $removedBy): void
     {
-        DB::transaction(function () use ($project, $user, $removedBy) {
+        DB::transaction(function () use ($project, $user) {
             $this->removeAction->execute($project, $user);
-
-            MemberRemoved::dispatch($project, $user, $removedBy);
         });
+
+        MemberRemoved::dispatch($project, $user, $removedBy);
     }
 
     public function changeRole(Project $project, User $user, ProjectRole $newRole): ProjectMembership
@@ -74,7 +75,7 @@ class MembershipService
         });
     }
 
-    public function getProjectMembers(Project $project): \Illuminate\Database\Eloquent\Collection
+    public function getProjectMembers(Project $project): Collection
     {
         return $project->memberships()
             ->with('user')
