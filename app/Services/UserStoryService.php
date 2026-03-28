@@ -9,7 +9,6 @@ use App\Actions\Scrum\ChangeStoryStatusAction;
 use App\Actions\Scrum\CreateUserStoryAction;
 use App\Actions\Scrum\MoveStoryToSprintAction;
 use App\Actions\Scrum\ReorderBacklogAction;
-use App\Enums\SprintStatus;
 use App\Enums\StoryStatus;
 use App\Events\Scrum\SprintScopeChanged;
 use App\Events\Scrum\StoryCreated;
@@ -81,25 +80,15 @@ class UserStoryService
 
     public function moveToSprint(UserStory $story, Sprint $sprint, User $user): UserStory
     {
-        $previousSprintId = $story->sprint_id;
-
-        $story = DB::transaction(function () use ($story, $sprint, $user) {
+        $result = DB::transaction(function () use ($story, $sprint, $user) {
             return $this->moveToSprintAction->execute($story, $sprint, $user);
         });
 
-        if ($sprint->status === SprintStatus::Active) {
-            SprintScopeChanged::dispatch($sprint, $story, 'added', $user);
+        foreach ($result['scopeChanges'] as ['sprint' => $affectedSprint, 'changeType' => $changeType]) {
+            SprintScopeChanged::dispatch($affectedSprint, $result['story'], $changeType, $user);
         }
 
-        if ($previousSprintId !== null) {
-            $previousSprint = Sprint::find($previousSprintId);
-
-            if ($previousSprint?->status === SprintStatus::Active) {
-                SprintScopeChanged::dispatch($previousSprint, $story, 'removed', $user);
-            }
-        }
-
-        return $story;
+        return $result['story'];
     }
 
     public function estimate(UserStory $story, array $points): UserStory
