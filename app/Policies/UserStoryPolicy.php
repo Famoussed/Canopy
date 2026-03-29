@@ -62,4 +62,12 @@ class UserStoryPolicy
     {
         return $this->isAtLeast($user, $story->project, ProjectRole::Moderator);
     }
+
+    /**
+     * Kanban board'da story statüsü değiştir — tüm üyeler
+     */
+    public function changeStatus(User $user, UserStory $story): bool
+    {
+        return $this->getMemberRole($user, $story->project) !== null;
+    }
 }

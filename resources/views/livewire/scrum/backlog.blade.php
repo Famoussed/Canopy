@@ -36,6 +36,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
 
     public function createStory(UserStoryService $service): void
     {
+        $this->authorize('create', [UserStory::class, $this->project]);
         $this->form->validate();
 
         $service->create([
@@ -49,6 +50,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
     public function moveToSprint(string $storyId, string $sprintId, UserStoryService $service): void
     {
         $story = UserStory::findOrFail($storyId);
+        $this->authorize('moveToSprint', $story);
         $sprint = Sprint::findOrFail($sprintId);
 
         $service->moveToSprint($story, $sprint, auth()->user());
@@ -56,6 +58,7 @@ new #[Layout('components.layouts.app')] #[Title('Backlog — Canopy')] class ext
 
     public function reorder($id, $position, UserStoryService $service): void
     {
+        $this->authorize('create', [UserStory::class, $this->project]);
         // Get current stories in order, move the dragged one to new position
         $stories = $this->project->userStories()->backlog()->ordered()->pluck('id')->toArray();
         $fromIdx = array_search($id, $stories);

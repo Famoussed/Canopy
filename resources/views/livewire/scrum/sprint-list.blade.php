@@ -38,6 +38,7 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
 
     public function createSprint(SprintService $service): void
     {
+        $this->authorize('create', [Sprint::class, $this->project]);
         $this->createForm->validate();
 
         $service->create($this->createForm->toArray(), $this->project);
@@ -58,6 +59,7 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
         $this->editForm->validate();
 
         $sprint = Sprint::findOrFail($this->editingSprintId);
+        $this->authorize('update', $sprint);
         $service->update($sprint, $this->editForm->toArray());
 
         $this->editingSprintId = null;
@@ -66,6 +68,7 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
     public function startSprint(string $sprintId, SprintService $service): void
     {
         $sprint = Sprint::findOrFail($sprintId);
+        $this->authorize('manage', $sprint);
 
         try {
             $service->start($sprint, auth()->user());
@@ -77,12 +80,14 @@ new #[Layout('components.layouts.app')] #[Title('Sprintler — Canopy')] class e
     public function closeSprint(string $sprintId, SprintService $service): void
     {
         $sprint = Sprint::findOrFail($sprintId);
+        $this->authorize('manage', $sprint);
         $service->close($sprint, auth()->user());
     }
 
     public function deleteSprint(string $sprintId, SprintService $service): void
     {
         $sprint = Sprint::findOrFail($sprintId);
+        $this->authorize('delete', $sprint);
         $service->delete($sprint);
     }
 

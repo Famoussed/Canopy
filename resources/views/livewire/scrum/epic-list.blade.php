@@ -35,6 +35,7 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
 
     public function createEpic(EpicService $service): void
     {
+        $this->authorize('create', [Epic::class, $this->project]);
         $this->createForm->validate();
 
         $service->create($this->createForm->toArray(), $this->project, auth()->user());
@@ -55,6 +56,7 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
         $this->editForm->validate();
 
         $epic = Epic::findOrFail($this->editingEpicId);
+        $this->authorize('update', $epic);
         $service->update($epic, $this->editForm->toArray());
 
         $this->editingEpicId = null;
@@ -63,6 +65,7 @@ new #[Layout('components.layouts.app')] #[Title('Epic\'ler — Canopy')] class e
     public function deleteEpic(string $epicId, EpicService $service): void
     {
         $epic = Epic::findOrFail($epicId);
+        $this->authorize('delete', $epic);
         $service->delete($epic);
     }
 

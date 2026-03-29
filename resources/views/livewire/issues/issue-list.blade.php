@@ -57,6 +57,7 @@
 
         public function createIssue(): void
         {
+            $this->authorize('create', [Issue::class, $this->project]);
             $this->createForm->validate();
 
             $this->issueService->create($this->createForm->toArray(), $this->project, auth()->user());
@@ -77,6 +78,7 @@
             $this->editForm->validate();
 
             $issue = Issue::findOrFail($this->editingIssueId);
+            $this->authorize('update', $issue);
             $this->issueService->update($issue, $this->editForm->toArray());
 
             $this->editingIssueId = null;
@@ -86,6 +88,7 @@
         public function changeStatus(string $issueId, string $newStatus): void
         {
             $issue = Issue::findOrFail($issueId);
+            $this->authorize('changeStatus', $issue);
 
             try {
                 $this->issueService->changeStatus(

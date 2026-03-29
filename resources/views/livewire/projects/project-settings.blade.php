@@ -42,6 +42,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
 
     public function saveProject(ProjectService $service): void
     {
+        $this->authorize('update', $this->project);
         $this->form->validate();
 
         $service->update($this->project, $this->form->toArray());
@@ -52,6 +53,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
 
     public function addMember(MembershipService $service): void
     {
+        $this->authorize('addMember', $this->project);
         $this->validate([
             'newMemberEmail' => 'required|email',
             'newMemberRole' => ['required', Rule::enum(ProjectRole::class)],
@@ -79,6 +81,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
 
     public function changeRole(string $userId, string $role, MembershipService $service): void
     {
+        $this->authorize('changeRole', $this->project);
         $service->changeRoleByUserId(
             $this->project,
             $userId,
@@ -90,6 +93,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
 
     public function removeMember(string $userId, MembershipService $service): void
     {
+        $this->authorize('removeMember', $this->project);
         $service->removeById(
             $this->project,
             $userId,
@@ -101,6 +105,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] c
 
     public function deleteProject(ProjectService $service): void
     {
+        $this->authorize('delete', $this->project);
         $service->delete($this->project);
         $this->redirect('/dashboard', navigate: true);
     }

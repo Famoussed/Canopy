@@ -46,6 +46,7 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
     public function changeTaskStatus(string $taskId, string $newStatus, TaskService $taskService): void
     {
         $task = Task::findOrFail($taskId);
+        $this->authorize('changeStatus', $task);
 
         try {
             $taskService->changeStatus($task, TaskStatus::from($newStatus), auth()->user());
@@ -59,6 +60,7 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
     public function changeStoryStatus(string $storyId, string $newStatus, UserStoryService $storyService): void
     {
         $story = UserStory::findOrFail($storyId);
+        $this->authorize('changeStatus', $story);
 
         try {
             $storyService->changeStatus($story, StoryStatus::from($newStatus), auth()->user());
@@ -70,6 +72,7 @@ new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] clas
     public function handleSort($id, $position, $columnId, UserStoryService $storyService): void
     {
         $story = UserStory::findOrFail($id);
+        $this->authorize('changeStatus', $story);
         $newStatus = StoryStatus::from($columnId);
 
         if ($story->status !== $newStatus) {
