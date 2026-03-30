@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Actions\Notification\MarkAsReadAction;
 use App\Actions\Notification\SendNotificationAction;
+use App\Events\Notification\NotificationSent;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -18,7 +19,9 @@ class NotificationService
 
     public function send(User $user, string $type, array $data): void
     {
-        $this->sendAction->execute($user, $type, $data);
+        $notification = $this->sendAction->execute($user, $type, $data);
+
+        NotificationSent::dispatch($notification, $user->id);
     }
 
     public function markAsRead(string $notificationId, User $user): void

@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\Actions\Notification\SendNotificationAction;
 use App\Events\Project\MemberAdded;
+use App\Services\NotificationService;
 
 class SendMemberAddedNotification
 {
     public function __construct(
-        private readonly SendNotificationAction $action,
+        private readonly NotificationService $notificationService,
     ) {}
 
     public function handle(MemberAdded $event): void
     {
-        $this->action->execute(
+        $this->notificationService->send(
             user: $event->member,
             type: 'member_added',
             data: [

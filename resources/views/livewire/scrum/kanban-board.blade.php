@@ -13,11 +13,13 @@ use App\Services\TaskService;
 use App\Services\UserStoryService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] #[Title('Kanban Board — Canopy')] class extends Component {
+    #[Locked]
     public Project $project;
 
     public ?string $selectedSprintId = null;

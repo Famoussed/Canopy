@@ -16,14 +16,13 @@ new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class 
     }
 
     #[Computed]
-    public function projects(): mixed
+    public function memberships(): mixed
     {
         return auth()->user()
             ->projectMemberships()
             ->with('project.owner', 'project.memberships')
             ->get()
-            ->pluck('project')
-            ->filter();
+            ->filter(fn ($m) => $m->project !== null);
     }
 }
 
@@ -77,7 +76,7 @@ new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class 
             </flux:button>
         </div>
 
-        @if ($this->projects->isEmpty())
+        @if ($this->memberships->isEmpty())
             <flux:card class="text-center py-16">
                 <div class="flex flex-col items-center gap-4">
                     <flux:icon name="folder-open" class="size-12 text-zinc-300" />
@@ -92,13 +91,14 @@ new #[Layout('components.layouts.app')] #[Title('Projelerim — Canopy')] class 
             </flux:card>
         @else
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                @foreach ($this->projects as $project)
+                @foreach ($this->memberships as $membership)
+                    @php $project = $membership->project; @endphp
                     <flux:card class="hover:shadow-md transition-shadow">
                         <a href="/projects/{{ $project->slug }}" wire:navigate class="block space-y-3">
                             <div class="flex items-center justify-between">
                                 <flux:heading size="lg" class="truncate">{{ $project->name }}</flux:heading>
                                 <flux:badge size="sm" color="indigo">
-                                    {{ auth()->user()->projectMemberships->where('project_id', $project->id)->first()?->role->label() ?? 'Üye' }}
+                                    {{ $membership->role->label() }}
                                 </flux:badge>
                             </div>
 

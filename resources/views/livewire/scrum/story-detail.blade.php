@@ -14,13 +14,16 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Livewire\Attributes\Async;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class extends Component {
+    #[Locked]
     public Project $project;
 
+    #[Locked]
     public UserStory $story;
 
     public TaskForm $taskForm;
@@ -47,6 +50,7 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
     {
         $this->project = $project;
         $this->story = $story;
+        $story->load(['tasks.assignee', 'epic', 'sprint', 'creator', 'storyPoints', 'attachments']);
         $this->storyForm->setFromStory($story);
         $this->selectedEpicId = $story->epic_id;
 
@@ -216,10 +220,6 @@ new #[Layout('components.layouts.app')] #[Title('Story Detay — Canopy')] class
         }
     }
 
-    public function rendering(): void
-    {
-        $this->story->load(['tasks.assignee', 'epic', 'sprint', 'creator', 'storyPoints', 'attachments']);
-    }
 }
 
 ?>

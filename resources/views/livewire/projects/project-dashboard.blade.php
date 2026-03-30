@@ -4,11 +4,13 @@ use App\Enums\StoryStatus;
 use App\Models\Project;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] class extends Component {
+    #[Locked]
     public Project $project;
 
     public function mount(Project $project): void
@@ -30,7 +32,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
     #[Computed]
     public function activeSprint(): mixed
     {
-        return $this->project->sprints()->active()->first();
+        return $this->project->sprints()->active()->withCount('userStories')->first();
     }
 
     #[Computed]
@@ -116,7 +118,7 @@ new #[Layout('components.layouts.app')] #[Title('Proje Dashboard — Canopy')] c
                     </div>
                     <div class="flex items-center gap-4 text-sm text-zinc-500">
                         <span>{{ $this->activeSprint->start_date?->format('d M') }} — {{ $this->activeSprint->end_date?->format('d M Y') }}</span>
-                        <span>{{ $this->activeSprint->userStories->count() }} story</span>
+                        <span>{{ $this->activeSprint->user_stories_count }} story</span>
                     </div>
                     <flux:button variant="outline" size="sm" href="/projects/{{ $project->slug }}/board" wire:navigate>
                         Board'u Aç

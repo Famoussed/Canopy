@@ -8,6 +8,8 @@ use App\Actions\Notification\SendNotificationAction;
 use App\Events\Notification\NotificationSent;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\NotificationService;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Livewire\Attributes\On;
@@ -41,7 +43,7 @@ class RealtimeBroadcastPipelineTest extends TestCase
         $notification = Notification::factory()->create(['user_id' => $this->user->id]);
         $event = new NotificationSent($notification, $this->user->id);
 
-        $this->assertInstanceOf(\Illuminate\Contracts\Broadcasting\ShouldBroadcast::class, $event);
+        $this->assertInstanceOf(ShouldBroadcast::class, $event);
     }
 
     public function test_notification_sent_broadcasts_on_private_user_channel(): void
@@ -82,14 +84,14 @@ class RealtimeBroadcastPipelineTest extends TestCase
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // 2. SendNotificationAction → Event Dispatch
+    // 2. NotificationService::send() → Event Dispatch
     // ═══════════════════════════════════════════════════════════════════
 
     public function test_send_notification_action_dispatches_notification_sent_event(): void
     {
         Event::fake([NotificationSent::class]);
 
-        app(SendNotificationAction::class)->execute(
+        app(NotificationService::class)->send(
             user: $this->user,
             type: 'task_assigned',
             data: ['task_title' => 'Pipeline Test'],
@@ -107,7 +109,7 @@ class RealtimeBroadcastPipelineTest extends TestCase
 
         $recipient = User::factory()->create();
 
-        app(SendNotificationAction::class)->execute(
+        app(NotificationService::class)->send(
             user: $recipient,
             type: 'member_added',
             data: ['project_name' => 'Test Project'],
@@ -294,7 +296,7 @@ class RealtimeBroadcastPipelineTest extends TestCase
     {
         Event::fake([NotificationSent::class]);
 
-        app(SendNotificationAction::class)->execute(
+        app(NotificationService::class)->send(
             user: $this->user,
             type: 'task_assigned',
             data: ['task_title' => 'Full Pipeline'],
@@ -344,7 +346,7 @@ class RealtimeBroadcastPipelineTest extends TestCase
         $types = ['task_assigned', 'story_status_changed', 'task_status_changed', 'issue_status_changed', 'member_added'];
 
         foreach ($types as $type) {
-            app(SendNotificationAction::class)->execute(
+            app(NotificationService::class)->send(
                 user: $this->user,
                 type: $type,
                 data: ['test' => true],

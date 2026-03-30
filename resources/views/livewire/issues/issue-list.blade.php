@@ -12,6 +12,7 @@
     use Livewire\Attributes\Async;
     use Livewire\Attributes\Computed;
     use Livewire\Attributes\Layout;
+    use Livewire\Attributes\Locked;
     use Livewire\Attributes\On;
     use Livewire\Attributes\Title;
     use Livewire\Component;
@@ -20,6 +21,7 @@
     new #[Layout('components.layouts.app')] #[Title('Issue\'lar — Canopy')] class extends Component {
         use WithPagination;
 
+        #[Locked]
         public Project $project;
 
         protected IssueService $issueService;

@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\Actions\Notification\SendNotificationAction;
 use App\Events\Scrum\TaskAssigned;
+use App\Services\NotificationService;
 
 class SendTaskAssignedNotification
 {
     public function __construct(
-        private readonly SendNotificationAction $action,
+        private readonly NotificationService $notificationService,
     ) {}
 
     public function handle(TaskAssigned $event): void
     {
-        $this->action->execute(
+        $this->notificationService->send(
             user: $event->assignee,
             type: 'task_assigned',
             data: [

@@ -12,11 +12,13 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] #[Title('Proje Ayarları — Canopy')] class extends Component {
+    #[Locked]
     public Project $project;
 
     public ProjectForm $form;
