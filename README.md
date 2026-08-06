@@ -1,66 +1,158 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Canopy
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> Şirketler için tasarlanmış, WebSocket tabanlı **gerçek zamanlı Scrum & proje yönetim sistemi**.
+> Backlog, sprint, kanban board, epic, issue takibi ve burndown/velocity analitiği — hepsi canlı güncellenen bir arayüzde.
 
-## About Laravel
+![Laravel](https://img.shields.io/badge/Laravel-11-FF2D20?logo=laravel&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)
+![Livewire](https://img.shields.io/badge/Livewire-4-4E56A6?logo=livewire&logoColor=white)
+![Reverb](https://img.shields.io/badge/Reverb-WebSockets-FF2D20?logo=laravel&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-49%20dosya-success)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Ne Yapıyor
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Canopy, ekiplerin Scrum sürecini tek yerden yürütmesi için yazıldı:
 
-## Learning Laravel
+- **Proje ve üyelik** — slug tabanlı projeler, rol bazlı üyelik (`ProjectRole`), üye limiti
+- **Backlog** — epic → user story → task hiyerarşisi, story point tahmini
+- **Sprint yönetimi** — sprint açma/kapama, kapsam değişikliği (scope change) kaydı, tek aktif sprint kuralı
+- **Kanban board** — sürükle-bırak durum geçişleri, geçersiz geçişlerde domain exception
+- **Issue takibi** — tip, öncelik, önem derecesi ve durum enum'larıyla
+- **Analitik** — burndown ve velocity grafikleri
+- **Gerçek zamanlı** — Laravel Reverb (WebSocket) üzerinden canlı board/bildirim güncellemesi
+- **Bildirimler** — uygulama içi bildirim merkezi
+- **Dosya ekleri** — S3 uyumlu depolama (Flysystem)
+- **Aktivite günlüğü** — kim neyi ne zaman değiştirdi
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Mimari
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```
+Livewire Component  (view + etkileşim)
+   └── Service      (orkestrasyon, transaction, iş kuralları)
+        └── Action  (tek bir işi yapan yeniden kullanılabilir birim)
+             └── Eloquent Model
+```
 
-## Laravel Sponsors
+Katman disiplini bilinçli olarak sıkı tutuldu:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- **Livewire bileşenleri iş mantığı taşımaz** — her şey Service'e delege edilir.
+- **Domain kuralları exception'a bağlanmıştır** — `InvalidStatusTransitionException`,
+  `ActiveSprintAlreadyExistsException`, `MaxMembersExceededException`,
+  `OwnerCannotBeRemovedException`, `DuplicateMemberException`, `TaskNotAssignedException`.
+  Geçersiz bir durum sessizce yutulmaz, tipli bir hata olarak yüzeye çıkar.
+- **Durumlar native PHP enum'ları** — `IssueStatus`, `IssuePriority`, `IssueSeverity`,
+  `IssueType`, `SprintStatus`, `StoryStatus`, `TaskStatus`, `ProjectRole`.
+- **Olaylar transaction'dan sonra** dispatch edilir; broadcasting bunların üzerine kuruludur.
+- **Yetkilendirme Policy'lerde**, Service'in içinde değil.
 
-### Premium Partners
+### Klasör yapısı
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```
+app/
+├── Actions/        # Analytics · Auth · File · Issue · Notification · Project · Scrum
+├── Enums/          # durum ve rol enum'ları
+├── Events/         # Issue · Notification · Project · Scrum (broadcast edilenler dahil)
+├── Exceptions/     # domain exception'ları
+├── Livewire/       # sayfa bileşenleri + Forms
+├── Models/         # Project, Epic, UserStory, Sprint, Task, Issue, ...
+├── Policies/
+└── Services/       # 12 servis: Project, Sprint, UserStory, Task, Issue, Burndown, Velocity, ...
+tests/
+├── Feature/        # Auth · Project · Scrum · Issues · Rbac · Broadcasting · Analytics · File
+├── Livewire/       # bileşen testleri
+└── Unit/           # Action ve analitik birim testleri
+```
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Teknoloji Yığını
 
-## Code of Conduct
+| Katman | Teknoloji |
+|---|---|
+| Framework | Laravel 11 · PHP 8.4 |
+| UI | Livewire 4 + Flux UI + Tailwind CSS 4 |
+| Gerçek zamanlı | Laravel Reverb + Laravel Echo |
+| Kuyruk / önbellek | Redis (Predis) |
+| Dosya depolama | Flysystem — AWS S3 |
+| Test | PHPUnit 11 |
+| Kod stili | Laravel Pint |
+| Ortam | Docker + docker-compose |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## Kurulum
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+git clone https://github.com/Famoussed/Canopy.git
+cd Canopy
 
-## License
+composer install
+npm install
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate --seed
+```
+
+Geliştirme sunucusu, Vite, kuyruk ve WebSocket sunucusunu birlikte çalıştır:
+
+```bash
+php artisan serve      # uygulama
+npm run dev            # Vite
+php artisan reverb:start   # WebSocket sunucusu
+php artisan queue:work     # kuyruk
+```
+
+Docker ile:
+
+```bash
+docker compose up -d
+```
+
+---
+
+## Testler
+
+```bash
+php artisan test
+./vendor/bin/pint        # kod stili
+```
+
+Test kapsamı: kimlik doğrulama, proje ve üyelik (RBAC), Scrum akışları (sprint, story,
+task, epic), issue yönetimi, broadcasting, analitik hesapları ve dosya eklerini içerir.
+
+---
+
+## Rota Haritası
+
+```
+/login · /register · /dashboard
+/projects/create
+/projects/{project:slug}            → proje panosu
+/projects/{project:slug}/backlog    → backlog
+/projects/{project:slug}/board      → kanban
+/projects/{project:slug}/sprints    → sprint listesi
+/projects/{project:slug}/epics      → epic listesi
+/projects/{project:slug}/stories/{story}
+/projects/{project:slug}/issues
+/projects/{project:slug}/analytics  → burndown & velocity
+/projects/{project:slug}/settings
+```
+
+Proje kapsamındaki tüm rotalar `project.member` middleware'i arkasındadır.
+
+---
+
+## Lisans
+
+MIT
+
+## İletişim
+
+**Ahmet Selim Çiftci** — [GitHub](https://github.com/Famoussed) · [LinkedIn](https://www.linkedin.com/in/ahmet-selim-çiftci-51472035b)
